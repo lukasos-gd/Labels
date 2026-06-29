@@ -21,7 +21,7 @@
   "settings": {
     "fps-show":    { "name": "Show FPS",              "type": "bool",  "default": true },
     "fps-scale":   { "name": "FPS Scale",             "type": "float", "default": 0.35, "min": 0.1, "max": 2.0 },
-    "fps-opacity": { "name": "FPS Opacity",           "type": "float", "default": 1.0,  "min": 0.0, "max": 1.0 },
+    "fps-opacity": { "name": "FPS Opacity",           "type": "float", "default": 0.5,  "min": 0.0, "max": 1.0 },
     "fps-r":       { "name": "FPS Red",               "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "fps-g":       { "name": "FPS Green",             "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "fps-b":       { "name": "FPS Blue",              "type": "int",   "default": 255,  "min": 0,   "max": 255 },
@@ -30,7 +30,7 @@
 
     "cps-show":    { "name": "Show CPS",              "type": "bool",  "default": true },
     "cps-scale":   { "name": "CPS Scale",             "type": "float", "default": 0.35, "min": 0.1, "max": 2.0 },
-    "cps-opacity": { "name": "CPS Opacity",           "type": "float", "default": 1.0,  "min": 0.0, "max": 1.0 },
+    "cps-opacity": { "name": "CPS Opacity",           "type": "float", "default": 0.5,  "min": 0.0, "max": 1.0 },
     "cps-r":       { "name": "CPS Red",               "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "cps-g":       { "name": "CPS Green",             "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "cps-b":       { "name": "CPS Blue",              "type": "int",   "default": 255,  "min": 0,   "max": 255 },
@@ -39,7 +39,7 @@
 
     "attempts-show":    { "name": "Show Attempts",         "type": "bool",  "default": true },
     "attempts-scale":   { "name": "Attempts Scale",        "type": "float", "default": 0.35, "min": 0.1, "max": 2.0 },
-    "attempts-opacity": { "name": "Attempts Opacity",      "type": "float", "default": 1.0,  "min": 0.0, "max": 1.0 },
+    "attempts-opacity": { "name": "Attempts Opacity",      "type": "float", "default": 0.5,  "min": 0.0, "max": 1.0 },
     "attempts-r":       { "name": "Attempts Red",          "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "attempts-g":       { "name": "Attempts Green",        "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "attempts-b":       { "name": "Attempts Blue",         "type": "int",   "default": 255,  "min": 0,   "max": 255 },
@@ -48,7 +48,7 @@
 
     "best-show":    { "name": "Show Best %",          "type": "bool",  "default": true },
     "best-scale":   { "name": "Best % Scale",         "type": "float", "default": 0.35, "min": 0.1, "max": 2.0 },
-    "best-opacity": { "name": "Best % Opacity",       "type": "float", "default": 1.0,  "min": 0.0, "max": 1.0 },
+    "best-opacity": { "name": "Best % Opacity",       "type": "float", "default": 0.5,  "min": 0.0, "max": 1.0 },
     "best-r":       { "name": "Best % Red",           "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "best-g":       { "name": "Best % Green",         "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "best-b":       { "name": "Best % Blue",          "type": "int",   "default": 255,  "min": 0,   "max": 255 },
@@ -57,7 +57,7 @@
 
     "runfrom-show":    { "name": "Show Run From %",        "type": "bool",  "default": true },
     "runfrom-scale":   { "name": "Run From % Scale",       "type": "float", "default": 0.35, "min": 0.1, "max": 2.0 },
-    "runfrom-opacity": { "name": "Run From % Opacity",     "type": "float", "default": 1.0,  "min": 0.0, "max": 1.0 },
+    "runfrom-opacity": { "name": "Run From % Opacity",     "type": "float", "default": 0.5,  "min": 0.0, "max": 1.0 },
     "runfrom-r":       { "name": "Run From % Red",         "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "runfrom-g":       { "name": "Run From % Green",       "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "runfrom-b":       { "name": "Run From % Blue",        "type": "int",   "default": 255,  "min": 0,   "max": 255 },
@@ -66,7 +66,7 @@
 
     "curpct-show":    { "name": "Show Current %",         "type": "bool",  "default": true },
     "curpct-scale":   { "name": "Current % Scale",        "type": "float", "default": 0.35, "min": 0.1, "max": 2.0 },
-    "curpct-opacity": { "name": "Current % Opacity",      "type": "float", "default": 1.0,  "min": 0.0, "max": 1.0 },
+    "curpct-opacity": { "name": "Current % Opacity",      "type": "float", "default": 0.5,  "min": 0.0, "max": 1.0 },
     "curpct-r":       { "name": "Current % Red",          "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "curpct-g":       { "name": "Current % Green",        "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "curpct-b":       { "name": "Current % Blue",         "type": "int",   "default": 255,  "min": 0,   "max": 255 },
@@ -75,7 +75,7 @@
 
     "time-show":    { "name": "Show Session Time",      "type": "bool",  "default": true },
     "time-scale":   { "name": "Session Time Scale",     "type": "float", "default": 0.35, "min": 0.1, "max": 2.0 },
-    "time-opacity": { "name": "Session Time Opacity",   "type": "float", "default": 1.0,  "min": 0.0, "max": 1.0 },
+    "time-opacity": { "name": "Session Time Opacity",   "type": "float", "default": 0.5,  "min": 0.0, "max": 1.0 },
     "time-r":       { "name": "Session Time Red",       "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "time-g":       { "name": "Session Time Green",     "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "time-b":       { "name": "Session Time Blue",      "type": "int",   "default": 255,  "min": 0,   "max": 255 },
@@ -84,7 +84,7 @@
 
     "levelid-show":    { "name": "Show Level ID",        "type": "bool",  "default": false },
     "levelid-scale":   { "name": "Level ID Scale",       "type": "float", "default": 0.35, "min": 0.1, "max": 2.0 },
-    "levelid-opacity": { "name": "Level ID Opacity",     "type": "float", "default": 1.0,  "min": 0.0, "max": 1.0 },
+    "levelid-opacity": { "name": "Level ID Opacity",     "type": "float", "default": 0.5,  "min": 0.0, "max": 1.0 },
     "levelid-r":       { "name": "Level ID Red",         "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "levelid-g":       { "name": "Level ID Green",       "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "levelid-b":       { "name": "Level ID Blue",        "type": "int",   "default": 255,  "min": 0,   "max": 255 },
@@ -93,7 +93,7 @@
 
     "song-show":    { "name": "Show Song Name",         "type": "bool",  "default": false },
     "song-scale":   { "name": "Song Name Scale",        "type": "float", "default": 0.35, "min": 0.1, "max": 2.0 },
-    "song-opacity": { "name": "Song Name Opacity",      "type": "float", "default": 1.0,  "min": 0.0, "max": 1.0 },
+    "song-opacity": { "name": "Song Name Opacity",      "type": "float", "default": 0.5,  "min": 0.0, "max": 1.0 },
     "song-r":       { "name": "Song Name Red",          "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "song-g":       { "name": "Song Name Green",        "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "song-b":       { "name": "Song Name Blue",         "type": "int",   "default": 255,  "min": 0,   "max": 255 },
@@ -102,7 +102,7 @@
 
     "objects-show":    { "name": "Show Object Count",       "type": "bool",  "default": false },
     "objects-scale":   { "name": "Object Count Scale",      "type": "float", "default": 0.35, "min": 0.1, "max": 2.0 },
-    "objects-opacity": { "name": "Object Count Opacity",    "type": "float", "default": 1.0,  "min": 0.0, "max": 1.0 },
+    "objects-opacity": { "name": "Object Count Opacity",    "type": "float", "default": 0.5,  "min": 0.0, "max": 1.0 },
     "objects-r":       { "name": "Object Count Red",        "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "objects-g":       { "name": "Object Count Green",      "type": "int",   "default": 255,  "min": 0,   "max": 255 },
     "objects-b":       { "name": "Object Count Blue",       "type": "int",   "default": 255,  "min": 0,   "max": 255 },
