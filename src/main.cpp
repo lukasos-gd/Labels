@@ -27,12 +27,13 @@ public:
 
     static constexpr int MAX_CLICKS = 512;
     float clickTimes[MAX_CLICKS] = {};
-    int   clickHead  = 0;
-    int   clickCount = 0;
-    int   curCPS     = 0;
-    int   maxCPS     = 0;
-    float elapsed    = 0.f;
-    float clickFlash = 0.f;
+    int   clickHead   = 0;
+    int   clickCount  = 0;
+    int   totalClicks = 0;
+    int   curCPS      = 0;
+    int   maxCPS      = 0;
+    float elapsed     = 0.f;
+    float clickFlash  = 0.f;
 
     float sessionTime = 0.f;
 
@@ -80,7 +81,7 @@ public:
         remove(idLbl);  remove(songLbl); remove(objLbl);
 
         fpsLbl  = makeLabel("FPS: 0");
-        cpsLbl  = makeLabel("CPS: 0 | Max: 0");
+        cpsLbl  = makeLabel("Clicks: 0 | CPS: 0 | Max: 0");
         attLbl  = makeLabel("Attempts: 0");
         bstLbl  = makeLabel("Best: 0%");
         runLbl  = makeLabel("From: 0%");
@@ -123,14 +124,15 @@ public:
         clickTimes[clickHead % MAX_CLICKS] = elapsed;
         clickHead++;
         if (clickCount < MAX_CLICKS) clickCount++;
+        totalClicks++;
         clickFlash = 0.15f;
     }
 
     void resetCPS() {
         for (auto& t : clickTimes) t = 0.f;
-        clickHead = clickCount = curCPS = maxCPS = 0;
+        clickHead = clickCount = totalClicks = curCPS = maxCPS = 0;
         elapsed = clickFlash = 0.f;
-        if (cpsLbl) cpsLbl->setString("CPS: 0 | Max: 0");
+        if (cpsLbl) cpsLbl->setString("Clicks: 0 | CPS: 0 | Max: 0");
     }
 
     void resetTime() {
@@ -177,7 +179,7 @@ public:
             curCPS = cps;
             if (curCPS > maxCPS) maxCPS = curCPS;
 
-            cpsLbl->setString(fmt::format("CPS: {} | Max: {}", curCPS, maxCPS).c_str());
+            cpsLbl->setString(fmt::format("Clicks: {} | CPS: {} | Max: {}", totalClicks, curCPS, maxCPS).c_str());
 
             if (clickFlash > 0.f) {
                 cpsLbl->setColor({0, 255, 0});
@@ -195,10 +197,14 @@ public:
             timeLbl->setString(fmt::format("Time: {}:{:02d}", mins, secs).c_str());
         }
 
-        if (pctLbl && pctLbl->isVisible()) {
+        if (pctLbl) {
             auto* pl = PlayLayer::get();
-            if (pl)
-                pctLbl->setString(fmt::format("Now: {}%", (int)pl->m_gameState.m_currentProgress).c_str());
+            bool isPlatformer = pl && pl->m_level && pl->m_level->isPlatformer();
+            pctLbl->setVisible(S_bool("curpct-show") && !isPlatformer);
+            if (pctLbl->isVisible() && pl) {
+                int pct = std::clamp((int)pl->m_gameState.m_currentProgress, 0, 100);
+                pctLbl->setString(fmt::format("Now: {}%", pct).c_str());
+            }
         }
     }
 };
@@ -246,9 +252,7 @@ public:
                 fmt::format("ID: {}", m_level->m_levelID.value()).c_str());
 
         if (h->songLbl) {
-            auto* songObj = MusicDownloadManager::sharedState()->getSongInfoObject(m_level->m_songID);
-            std::string songName = songObj ? songObj->m_songName : "Unknown";
-            h->songLbl->setString(fmt::format("Song: {}", songName).c_str());
+            h->songLbl->setString(fmt::format("Song: {}", m_level->getSongName()).c_str());
         }
 
         if (h->objLbl)
