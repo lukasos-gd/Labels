@@ -45,3 +45,6 @@
 
 # v2.1.1
 - Fixed many bugs.
+
+# v2.1.2
+- Added it so if you have disbled a label between some labels, they automatically get stacked so there won't be gaps.
