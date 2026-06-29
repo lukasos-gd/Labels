@@ -48,3 +48,6 @@
 
 # v2.1.2
 - Added it so if you have disbled a label between some labels, they automatically get stacked so there won't be gaps.
+
+# v2.2.0
+- Added a custom menu for the label settings in the pause menu.
