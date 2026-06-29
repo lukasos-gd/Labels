@@ -16,7 +16,7 @@
   },
   "links": {
     "source": "https://github.com/lukasos-gd/Labels",
-    "discord": "https://discord.gg/cqZJNdKJDC"
+    "community": "https://discord.gg/cqZJNdKJDC"
   },
   "settings": {
     "fps-show":    { "name": "Show FPS",              "type": "bool",  "default": true },
