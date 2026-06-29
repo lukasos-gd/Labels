@@ -5,7 +5,7 @@
   },
   "id": "lukasos.labels",
   "name": "Labels",
-  "version": "v2.1.1",
+  "version": "v2.1.2",
   "developer": "Lukasos",
   "description": "Adds customizable HUD labels showing FPS, CPS, Attempts and Best% while playing.",
   "dependencies": {
