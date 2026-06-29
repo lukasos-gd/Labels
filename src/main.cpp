@@ -96,16 +96,25 @@ public:
 
     void applySettings() {
         auto win = CCDirector::sharedDirector()->getWinSize();
+        auto* pl = PlayLayer::get();
+        bool isPlatformer = pl && pl->m_level && pl->m_level->isPlatformer();
+
         applyOne(fpsLbl,  "fps",      win);
         applyOne(cpsLbl,  "cps",      win);
         applyOne(attLbl,  "attempts", win);
         applyOne(bstLbl,  "best",     win);
-        applyOne(runLbl,  "runfrom",  win);
-        applyOne(pctLbl,  "curpct",   win);
         applyOne(timeLbl, "time",     win);
         applyOne(idLbl,   "levelid",  win);
         applyOne(songLbl, "song",     win);
         applyOne(objLbl,  "objects",  win);
+
+        // These labels are hidden in platformer levels
+        applyOne(runLbl,  "runfrom",  win);
+        applyOne(pctLbl,  "curpct",   win);
+        if (isPlatformer) {
+            if (runLbl) runLbl->setVisible(false);
+            if (pctLbl) pctLbl->setVisible(false);
+        }
     }
 
     void applyOne(CCLabelBMFont* lbl, const std::string& k, const CCSize& win) {
@@ -199,10 +208,8 @@ public:
 
         if (pctLbl) {
             auto* pl = PlayLayer::get();
-            bool isPlatformer = pl && pl->m_level && pl->m_level->isPlatformer();
-            pctLbl->setVisible(S_bool("curpct-show") && !isPlatformer);
-            if (pctLbl->isVisible() && pl) {
-                int pct = std::clamp((int)pl->m_gameState.m_currentProgress, 0, 100);
+            if (pl && pctLbl->isVisible()) {
+                int pct = std::clamp((int)pl->getCurrentPercent(), 0, 100);
                 pctLbl->setString(fmt::format("Now: {}%", pct).c_str());
             }
         }
@@ -279,8 +286,6 @@ public:
     void destroyPlayer(PlayerObject* player, GameObject* obj) {
         PlayLayer::destroyPlayer(player, obj);
         updateHUDStatic();
-        m_fields->runFromPct = 0;
-        updateRunFrom();
     }
 
     void levelComplete() {
@@ -292,8 +297,8 @@ public:
         PlayLayer::resetLevel();
         if (m_fields->hud) m_fields->hud->resetCPS();
 
-        // Capture run-from % after reset so we know where this attempt starts
-        m_fields->runFromPct = (int)m_gameState.m_currentProgress;
+        // Capture where this attempt starts AFTER reset
+        m_fields->runFromPct = std::clamp((int)getCurrentPercent(), 0, 100);
         updateRunFrom();
     }
 
@@ -366,5 +371,5 @@ class $modify(MyPauseLayer, PauseLayer) {
 };
 
 $on_mod(Loaded) {
-    log::info("Labels v2.1.0 loaded");
+    log::info("Labels v2.1.1 loaded");
 }
