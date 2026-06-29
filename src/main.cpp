@@ -99,34 +99,62 @@ public:
         auto* pl = PlayLayer::get();
         bool isPlatformer = pl && pl->m_level && pl->m_level->isPlatformer();
 
-        applyOne(fpsLbl,  "fps",      win);
-        applyOne(cpsLbl,  "cps",      win);
-        applyOne(attLbl,  "attempts", win);
-        applyOne(bstLbl,  "best",     win);
-        applyOne(timeLbl, "time",     win);
-        applyOne(idLbl,   "levelid",  win);
-        applyOne(songLbl, "song",     win);
-        applyOne(objLbl,  "objects",  win);
+        // Label order — defines stacking order top to bottom
+        struct Entry { CCLabelBMFont* lbl; std::string key; bool hidePlatformer; };
+        std::vector<Entry> entries = {
+            {fpsLbl,  "fps",      false},
+            {cpsLbl,  "cps",      false},
+            {attLbl,  "attempts", false},
+            {bstLbl,  "best",     false},
+            {runLbl,  "runfrom",  true },
+            {pctLbl,  "curpct",   true },
+            {timeLbl, "time",     false},
+            {idLbl,   "levelid",  false},
+            {songLbl, "song",     false},
+            {objLbl,  "objects",  false},
+        };
 
-        // These labels are hidden in platformer levels
-        applyOne(runLbl,  "runfrom",  win);
-        applyOne(pctLbl,  "curpct",   win);
-        if (isPlatformer) {
-            if (runLbl) runLbl->setVisible(false);
-            if (pctLbl) pctLbl->setVisible(false);
+        // Apply style (color, scale, opacity) to all labels first
+        for (auto& e : entries) {
+            if (!e.lbl) continue;
+            bool show = S_bool((e.key + "-show").c_str());
+            if (e.hidePlatformer && isPlatformer) show = false;
+            e.lbl->setVisible(show);
+            e.lbl->setScale  (S_float((e.key + "-scale").c_str()));
+            e.lbl->setOpacity((GLubyte)(S_float((e.key + "-opacity").c_str()) * 255.f));
+            e.lbl->setColor  ({(GLubyte)S_int((e.key + "-r").c_str()),
+                               (GLubyte)S_int((e.key + "-g").c_str()),
+                               (GLubyte)S_int((e.key + "-b").c_str())});
+        }
+
+        // Stack visible labels top-to-bottom with no gaps
+        // X and start Y come from the first visible label's settings
+        float startY = -1.f;
+        float startX = 5.f;
+        float curY   = 0.f;
+
+        for (auto& e : entries) {
+            if (!e.lbl || !e.lbl->isVisible()) continue;
+
+            float scale  = e.lbl->getScale();
+            // Height of one line at this scale (bigFont.fnt glyph height ~26px)
+            float lineH  = 26.f * scale;
+
+            if (startY < 0.f) {
+                // First visible label — use its X/Y setting as anchor
+                startX = S_float((e.key + "-x").c_str());
+                startY = S_float((e.key + "-y").c_str());
+                curY   = win.height - startY;
+            }
+
+            e.lbl->setPosition({startX, curY});
+            curY -= lineH + 2.f; // 2px gap between lines
         }
     }
 
     void applyOne(CCLabelBMFont* lbl, const std::string& k, const CCSize& win) {
+        // Kept for compatibility but applySettings handles everything now
         if (!lbl) return;
-        lbl->setVisible(S_bool ((k + "-show").c_str()));
-        lbl->setScale  (S_float((k + "-scale").c_str()));
-        lbl->setOpacity((GLubyte)(S_float((k + "-opacity").c_str()) * 255.f));
-        lbl->setColor  ({(GLubyte)S_int((k + "-r").c_str()),
-                         (GLubyte)S_int((k + "-g").c_str()),
-                         (GLubyte)S_int((k + "-b").c_str())});
-        lbl->setPosition({S_float((k + "-x").c_str()),
-                          win.height - S_float((k + "-y").c_str())});
     }
 
     void registerClick() {
@@ -371,5 +399,5 @@ class $modify(MyPauseLayer, PauseLayer) {
 };
 
 $on_mod(Loaded) {
-    log::info("Labels v2.1.1 loaded");
+    log::info("Labels v2.1.2 loaded");
 }
