@@ -41,3 +41,4 @@
 
 # v2.1.0
 - Fixed the Current %, Level ID, Song name not showing to main levels and Object Count.
+- Added a "Total Clicks" counter to the CPS label.
