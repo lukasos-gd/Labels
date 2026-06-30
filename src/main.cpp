@@ -780,5 +780,5 @@ class $modify(MyPauseLayer, PauseLayer) {
 };
 
 $on_mod(Loaded) {
-    log::info("Labels v2.2.0 loaded");
+    log::info("Labels v1.0.0 loaded");
 }
