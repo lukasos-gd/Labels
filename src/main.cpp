@@ -330,8 +330,8 @@ struct MyPlayerObject : geode::Modify<MyPlayerObject, PlayerObject> {
 
 class LabelSettingPopup : public geode::Popup {
 protected:
-    static constexpr float PW = 320.f;
-    static constexpr float PH = 320.f;
+    static constexpr float PW = 360.f;
+    static constexpr float PH = 360.f;
 
     std::string m_key;
     std::string m_labelName;
@@ -353,26 +353,30 @@ protected:
         m_labelName = labelName;
         setTitle(labelName.c_str());
 
-        // Nicer background panel behind the preview/controls
+        float cx = PW / 2.f;
+
+        // Nicer background panel behind the preview/controls — strong contrast
+        float panelW = PW - 40.f;
+        float panelH = PH - 90.f;
         auto* panel = CCScale9Sprite::create("square02b_001.png");
-        panel->setContentSize({PW - 30.f, PH - 70.f});
-        panel->setOpacity(90);
-        panel->setColor({0, 0, 0});
-        panel->setPosition({PW / 2.f, (PH - 70.f) / 2.f + 8.f});
+        panel->setContentSize({panelW, panelH});
+        panel->setOpacity(160);
+        panel->setColor({20, 14, 10});
+        panel->setPosition({cx, panelH / 2.f + 16.f});
         m_mainLayer->addChild(panel, -1);
 
-        float cx = PW / 2.f;
-        float topY = PH - 58.f;
+        float topY = PH - 60.f;
 
-        // Live preview chip
+        // Live preview chip — always rendered at a fixed legible scale
         auto* previewBg = CCScale9Sprite::create("square02b_001.png");
-        previewBg->setContentSize({PW - 50.f, 30.f});
-        previewBg->setOpacity(140);
+        previewBg->setContentSize({panelW - 16.f, 32.f});
+        previewBg->setOpacity(200);
+        previewBg->setColor({0, 0, 0});
         previewBg->setPosition({cx, topY});
         m_mainLayer->addChild(previewBg);
 
         m_preview = CCLabelBMFont::create(labelName.c_str(), "bigFont.fnt");
-        m_preview->setScale(S_float((m_key + "-scale").c_str()));
+        m_preview->setScale(0.5f); // fixed preview scale; actual scale only affects in-game size
         m_preview->setOpacity((GLubyte)(S_float((m_key + "-opacity").c_str()) * 255.f));
         m_preview->setColor({(GLubyte)S_int((m_key + "-r").c_str()),
                              (GLubyte)S_int((m_key + "-g").c_str()),
@@ -380,67 +384,74 @@ protected:
         m_preview->setPosition({cx, topY});
         m_mainLayer->addChild(m_preview);
 
-        float rowGap  = 30.f;
-        float y = topY - 36.f;
+        float rowGap = 32.f;
+        float y = topY - 40.f;
+
+        // Column anchors, all relative to popup center, guaranteed to fit within PW
+        float labelX  = cx - panelW / 2.f + 14.f;  // left edge of panel + padding
+        float minusX  = cx + panelW / 2.f - 92.f;
+        float valueX  = cx + panelW / 2.f - 56.f;
+        float plusX   = cx + panelW / 2.f - 18.f;
+        float toggleX = cx + panelW / 2.f - 30.f;
 
         // Toggle row
-        addRowLabel("Show", cx, y);
+        addRowLabel("Show", labelX, y);
         auto* tog = CCMenuItemToggler::createWithStandardSprites(
-            this, menu_selector(LabelSettingPopup::onToggle), 0.7f);
+            this, menu_selector(LabelSettingPopup::onToggle), 0.65f);
         tog->toggle(S_bool((m_key + "-show").c_str()));
-        tog->setPosition({cx + 95.f, y});
+        tog->setPosition({toggleX, y});
         m_buttonMenu->addChild(tog);
         y -= rowGap;
 
         // Scale row
-        addRowLabel("Scale", cx, y);
-        m_scaleLbl = addStepper(y,
+        addRowLabel("Scale", labelX, y);
+        m_scaleLbl = addStepper(y, minusX, valueX, plusX,
             fmt::format("{:.2f}", S_float((m_key + "-scale").c_str())),
             menu_selector(LabelSettingPopup::onScaleMinus),
             menu_selector(LabelSettingPopup::onScalePlus));
         y -= rowGap;
 
         // Opacity row
-        addRowLabel("Opacity", cx, y);
-        m_opacLbl = addStepper(y,
+        addRowLabel("Opacity", labelX, y);
+        m_opacLbl = addStepper(y, minusX, valueX, plusX,
             fmt::format("{:.2f}", S_float((m_key + "-opacity").c_str())),
             menu_selector(LabelSettingPopup::onOpacMinus),
             menu_selector(LabelSettingPopup::onOpacPlus));
         y -= rowGap;
 
         // Position X row
-        addRowLabel("Pos X", cx, y);
-        m_xLbl = addStepper(y,
+        addRowLabel("Pos X", labelX, y);
+        m_xLbl = addStepper(y, minusX, valueX, plusX,
             fmt::format("{:.0f}", S_float((m_key + "-x").c_str())),
             menu_selector(LabelSettingPopup::onXMinus),
             menu_selector(LabelSettingPopup::onXPlus));
         y -= rowGap;
 
         // Position Y row
-        addRowLabel("Pos Y", cx, y);
-        m_yLbl = addStepper(y,
+        addRowLabel("Pos Y", labelX, y);
+        m_yLbl = addStepper(y, minusX, valueX, plusX,
             fmt::format("{:.0f}", S_float((m_key + "-y").c_str())),
             menu_selector(LabelSettingPopup::onYMinus),
             menu_selector(LabelSettingPopup::onYPlus));
         y -= rowGap;
 
         // Color rows
-        addRowLabel("Red", cx, y);
-        m_rLbl = addStepper(y,
+        addRowLabel("Red", labelX, y);
+        m_rLbl = addStepper(y, minusX, valueX, plusX,
             fmt::format("{}", S_int((m_key + "-r").c_str())),
             menu_selector(LabelSettingPopup::onRMinus),
             menu_selector(LabelSettingPopup::onRPlus));
         y -= rowGap;
 
-        addRowLabel("Green", cx, y);
-        m_gLbl = addStepper(y,
+        addRowLabel("Green", labelX, y);
+        m_gLbl = addStepper(y, minusX, valueX, plusX,
             fmt::format("{}", S_int((m_key + "-g").c_str())),
             menu_selector(LabelSettingPopup::onGMinus),
             menu_selector(LabelSettingPopup::onGPlus));
         y -= rowGap;
 
-        addRowLabel("Blue", cx, y);
-        m_bLbl = addStepper(y,
+        addRowLabel("Blue", labelX, y);
+        m_bLbl = addStepper(y, minusX, valueX, plusX,
             fmt::format("{}", S_int((m_key + "-b").c_str())),
             menu_selector(LabelSettingPopup::onBMinus),
             menu_selector(LabelSettingPopup::onBPlus));
@@ -448,32 +459,31 @@ protected:
         return true;
     }
 
-    void addRowLabel(const char* text, float cx, float y) {
+    void addRowLabel(const char* text, float x, float y) {
         auto* lbl = CCLabelBMFont::create(text, "bigFont.fnt");
         lbl->setAnchorPoint({0.f, 0.5f});
-        lbl->setScale(0.42f);
-        lbl->setPosition({cx - 130.f, y});
+        lbl->setScale(0.4f);
+        lbl->setPosition({x, y});
         m_mainLayer->addChild(lbl);
     }
 
-    CCLabelBMFont* addStepper(float y, const std::string& valueText,
+    CCLabelBMFont* addStepper(float y, float minusX, float valueX, float plusX,
+                               const std::string& valueText,
                                SEL_MenuHandler minusSel, SEL_MenuHandler plusSel) {
-        float cx = PW / 2.f;
-
         auto* minusBtn = CCMenuItemSpriteExtra::create(
-            ButtonSprite::create("-", "bigFont.fnt", "GJ_button_01.png", 0.7f),
+            ButtonSprite::create("-", "bigFont.fnt", "GJ_button_01.png", 0.6f),
             this, minusSel);
-        minusBtn->setPosition({cx + 50.f, y});
+        minusBtn->setPosition({minusX, y});
 
         auto* valLbl = CCLabelBMFont::create(valueText.c_str(), "bigFont.fnt");
-        valLbl->setScale(0.42f);
-        valLbl->setPosition({cx + 95.f, y});
+        valLbl->setScale(0.38f);
+        valLbl->setPosition({valueX, y});
         m_mainLayer->addChild(valLbl);
 
         auto* plusBtn = CCMenuItemSpriteExtra::create(
-            ButtonSprite::create("+", "bigFont.fnt", "GJ_button_01.png", 0.7f),
+            ButtonSprite::create("+", "bigFont.fnt", "GJ_button_01.png", 0.6f),
             this, plusSel);
-        plusBtn->setPosition({cx + 140.f, y});
+        plusBtn->setPosition({plusX, y});
 
         m_buttonMenu->addChild(minusBtn);
         m_buttonMenu->addChild(plusBtn);
@@ -483,7 +493,8 @@ protected:
 
     void refreshPreview() {
         if (!m_preview) return;
-        m_preview->setScale(S_float((m_key + "-scale").c_str()));
+        // Preview always stays at a fixed legible scale; the real "scale" setting
+        // only controls in-game HUD size, not this preview chip.
         m_preview->setOpacity((GLubyte)(S_float((m_key + "-opacity").c_str()) * 255.f));
         m_preview->setColor({(GLubyte)S_int((m_key + "-r").c_str()),
                              (GLubyte)S_int((m_key + "-g").c_str()),
@@ -557,8 +568,8 @@ class LabelsPopup : public geode::Popup {
 protected:
     struct Row { std::string key; std::string name; };
 
-    static constexpr float PW = 340.f;
-    static constexpr float PH = 320.f;
+    static constexpr float PW = 360.f;
+    static constexpr float PH = 340.f;
 
     bool init() {
         if (!Popup::init(PW, PH))
@@ -578,38 +589,45 @@ protected:
             {"objects",  "Objects"},
         };
 
-        float rowH   = 34.f;
+        float rowH   = 36.f;
         float totalH = rowH * (float)rows.size();
-        float listW  = PW - 30.f;
-        float listH  = PH - 70.f;
+        float listW  = PW - 40.f;
+        float listH  = PH - 80.f;
+        float listX  = 20.f;
+        float listY  = 16.f;
 
-        // Panel background behind the scroll list
+        // Panel background behind the scroll list — strong contrast against brown popup
         auto* panel = CCScale9Sprite::create("square02b_001.png");
-        panel->setContentSize({listW + 6.f, listH + 6.f});
-        panel->setOpacity(90);
-        panel->setColor({0, 0, 0});
-        panel->setPosition({PW / 2.f, listH / 2.f + 12.f});
+        panel->setContentSize({listW + 8.f, listH + 8.f});
+        panel->setOpacity(160);
+        panel->setColor({20, 14, 10});
+        panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
         m_mainLayer->addChild(panel, -1);
 
         auto* scroll = ScrollLayer::create({listW, listH});
-        scroll->setPosition({15.f, 15.f});
+        scroll->setPosition({listX, listY});
         m_mainLayer->addChild(scroll);
 
         auto* content = CCNode::create();
-        content->setContentSize({listW, totalH});
+        content->setAnchorPoint({0.f, 0.f});
+        content->setPosition({0.f, 0.f});
+        content->setContentSize({listW, std::max(totalH, listH)});
 
         for (int i = 0; i < (int)rows.size(); i++) {
             auto& row = rows[i];
-            float y = totalH - rowH * (float)i - rowH / 2.f;
+            // Lay rows out top-down, anchored to the top of the content area
+            float y = std::max(totalH, listH) - rowH * (float)i - rowH / 2.f;
 
             // Alternating row stripe for readability
             if (i % 2 == 0) {
-                auto* stripe = CCLayerColor::create({255, 255, 255, 18}, listW, rowH);
+                auto* stripe = CCLayerColor::create({255, 255, 255, 16}, listW, rowH);
                 stripe->setPosition({0.f, y - rowH / 2.f});
                 content->addChild(stripe);
             }
 
             auto* rowMenu = CCMenu::create();
+            rowMenu->setContentSize({listW, rowH});
+            rowMenu->setAnchorPoint({0.f, 0.f});
             rowMenu->setPosition({0.f, 0.f});
 
             // Label name (static text, left aligned)
@@ -624,7 +642,7 @@ protected:
                 this, menu_selector(LabelsPopup::onToggle), 0.55f);
             tog->toggle(S_bool((row.key + "-show").c_str()));
             tog->setTag(i);
-            tog->setPosition({listW - 60.f, y});
+            tog->setPosition({listW - 78.f, y});
             rowMenu->addChild(tog);
 
             // Configure button — opens the sub-menu for this label
@@ -632,14 +650,16 @@ protected:
             auto* cfgBtn = CCMenuItemSpriteExtra::create(
                 cfgSpr, this, menu_selector(LabelsPopup::onLabelBtn));
             cfgBtn->setTag(i);
-            cfgBtn->setPosition({listW - 20.f, y});
+            cfgBtn->setPosition({listW - 32.f, y});
             rowMenu->addChild(cfgBtn);
 
             content->addChild(rowMenu);
         }
 
-        scroll->m_contentLayer->addChild(content);
         scroll->m_contentLayer->setContentSize({listW, std::max(totalH, listH)});
+        scroll->m_contentLayer->setPositionY(
+            std::min(0.f, listH - std::max(totalH, listH)));
+        scroll->m_contentLayer->addChild(content);
         scroll->moveToTop();
 
         return true;
