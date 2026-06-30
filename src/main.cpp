@@ -357,7 +357,7 @@ protected:
         float listX = 18.f;
         float listY = 16.f;
 
-        auto* panel = CCScale9Sprite::create("GE_square01-uhd.png");
+        auto* panel = CCScale9Sprite::create("GE_square01-uhd.png"_spr);
         panel->setContentSize({listW, listH});
         panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
         m_mainLayer->addChild(panel, -1);
@@ -485,14 +485,22 @@ protected:
                             const std::string& valueText,
                             SEL_MenuHandler minusSel, SEL_MenuHandler plusSel,
                             std::function<void(const std::string&)> onType) {
-        auto* minusBtn = CCMenuItemSpriteExtra::create(
-            ButtonSprite::create("-", "bigFont.fnt", "GJ_button_01.png", 0.9f),
-            this, minusSel);
+        auto* minusBg = CCScale9Sprite::create("GJ_button_01.png");
+        minusBg->setContentSize({28.f, 28.f});
+        auto* minusLbl = CCLabelBMFont::create("-", "bigFont.fnt");
+        minusLbl->setScale(0.45f);
+        minusLbl->setPosition({14.f, 14.f});
+        minusBg->addChild(minusLbl);
+        auto* minusBtn = CCMenuItemSpriteExtra::create(minusBg, this, minusSel);
         minusBtn->setPosition({minusX, y});
 
-        auto* plusBtn = CCMenuItemSpriteExtra::create(
-            ButtonSprite::create("+", "bigFont.fnt", "GJ_button_01.png", 0.9f),
-            this, plusSel);
+        auto* plusBg = CCScale9Sprite::create("GJ_button_01.png");
+        plusBg->setContentSize({28.f, 28.f});
+        auto* plusLbl = CCLabelBMFont::create("+", "bigFont.fnt");
+        plusLbl->setScale(0.45f);
+        plusLbl->setPosition({14.f, 14.f});
+        plusBg->addChild(plusLbl);
+        auto* plusBtn = CCMenuItemSpriteExtra::create(plusBg, this, plusSel);
         plusBtn->setPosition({plusX, y});
 
         auto* m = CCMenu::create();
@@ -637,7 +645,7 @@ protected:
         float listY = 16.f;
         float contentH = rowH * (float)rows.size();
 
-        auto* panel = CCScale9Sprite::create("GE_square01-uhd.png");
+        auto* panel = CCScale9Sprite::create("GE_square01-uhd.png"_spr);
         panel->setContentSize({listW, listH});
         panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
         m_mainLayer->addChild(panel, -1);
@@ -779,5 +787,5 @@ class $modify(MyPauseLayer, PauseLayer) {
 };
 
 $on_mod(Loaded) {
-    log::info("Labels v1.0.0 loaded");
+    log::info("Labels v2.2.0 loaded");
 }
