@@ -51,3 +51,6 @@
 
 # v2.2.0
 - Added a custom menu for the label settings in the pause menu.
+
+# v2.2.1
+- Fixed the whole custom menu.
