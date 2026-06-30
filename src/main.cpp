@@ -330,165 +330,165 @@ struct MyPlayerObject : geode::Modify<MyPlayerObject, PlayerObject> {
 
 class LabelSettingPopup : public geode::Popup {
 protected:
+    static constexpr float PW = 320.f;
+    static constexpr float PH = 320.f;
+
     std::string m_key;
     std::string m_labelName;
+
+    CCLabelBMFont* m_preview  = nullptr;
     CCLabelBMFont* m_scaleLbl = nullptr;
     CCLabelBMFont* m_opacLbl  = nullptr;
+    CCLabelBMFont* m_xLbl     = nullptr;
+    CCLabelBMFont* m_yLbl     = nullptr;
+    CCLabelBMFont* m_rLbl     = nullptr;
+    CCLabelBMFont* m_gLbl     = nullptr;
+    CCLabelBMFont* m_bLbl     = nullptr;
 
     bool init(std::string const& key, std::string const& labelName) {
-        if (!Popup::init(220.f, 280.f))
+        if (!Popup::init(PW, PH))
             return false;
 
         m_key       = key;
         m_labelName = labelName;
         setTitle(labelName.c_str());
 
-        float cx = m_mainLayer->getContentSize().width  / 2.f;
-        float cy = m_mainLayer->getContentSize().height / 2.f;
+        // Nicer background panel behind the preview/controls
+        auto* panel = CCScale9Sprite::create("square02b_001.png");
+        panel->setContentSize({PW - 30.f, PH - 70.f});
+        panel->setOpacity(90);
+        panel->setColor({0, 0, 0});
+        panel->setPosition({PW / 2.f, (PH - 70.f) / 2.f + 8.f});
+        m_mainLayer->addChild(panel, -1);
+
+        float cx = PW / 2.f;
+        float topY = PH - 58.f;
+
+        // Live preview chip
+        auto* previewBg = CCScale9Sprite::create("square02b_001.png");
+        previewBg->setContentSize({PW - 50.f, 30.f});
+        previewBg->setOpacity(140);
+        previewBg->setPosition({cx, topY});
+        m_mainLayer->addChild(previewBg);
+
+        m_preview = CCLabelBMFont::create(labelName.c_str(), "bigFont.fnt");
+        m_preview->setScale(S_float((m_key + "-scale").c_str()));
+        m_preview->setOpacity((GLubyte)(S_float((m_key + "-opacity").c_str()) * 255.f));
+        m_preview->setColor({(GLubyte)S_int((m_key + "-r").c_str()),
+                             (GLubyte)S_int((m_key + "-g").c_str()),
+                             (GLubyte)S_int((m_key + "-b").c_str())});
+        m_preview->setPosition({cx, topY});
+        m_mainLayer->addChild(m_preview);
+
+        float rowGap  = 30.f;
+        float y = topY - 36.f;
 
         // Toggle row
-        auto* showLbl = CCLabelBMFont::create("Show", "bigFont.fnt");
-        showLbl->setScale(0.45f);
-        showLbl->setPosition({cx - 60.f, cy + 50.f});
-        m_mainLayer->addChild(showLbl);
-
+        addRowLabel("Show", cx, y);
         auto* tog = CCMenuItemToggler::createWithStandardSprites(
             this, menu_selector(LabelSettingPopup::onToggle), 0.7f);
         tog->toggle(S_bool((m_key + "-show").c_str()));
-        tog->setPosition({cx + 40.f, cy + 50.f});
+        tog->setPosition({cx + 95.f, y});
         m_buttonMenu->addChild(tog);
+        y -= rowGap;
 
         // Scale row
-        auto* scaleLbl = CCLabelBMFont::create("Scale", "bigFont.fnt");
-        scaleLbl->setScale(0.45f);
-        scaleLbl->setPosition({cx - 60.f, cy + 20.f});
-        m_mainLayer->addChild(scaleLbl);
-
-        auto* minusSc = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("-", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onScaleMinus));
-        minusSc->setPosition({cx + 10.f, cy + 20.f});
-
-        m_scaleLbl = CCLabelBMFont::create(
-            fmt::format("{:.2f}", S_float((m_key + "-scale").c_str())).c_str(), "bigFont.fnt");
-        m_scaleLbl->setScale(0.4f);
-        m_scaleLbl->setPosition({cx + 40.f, cy + 20.f});
-        m_mainLayer->addChild(m_scaleLbl);
-
-        auto* plusSc = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("+", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onScalePlus));
-        plusSc->setPosition({cx + 70.f, cy + 20.f});
-
-        m_buttonMenu->addChild(minusSc);
-        m_buttonMenu->addChild(plusSc);
+        addRowLabel("Scale", cx, y);
+        m_scaleLbl = addStepper(y,
+            fmt::format("{:.2f}", S_float((m_key + "-scale").c_str())),
+            menu_selector(LabelSettingPopup::onScaleMinus),
+            menu_selector(LabelSettingPopup::onScalePlus));
+        y -= rowGap;
 
         // Opacity row
-        auto* opacLblTxt = CCLabelBMFont::create("Opacity", "bigFont.fnt");
-        opacLblTxt->setScale(0.45f);
-        opacLblTxt->setPosition({cx - 60.f, cy - 10.f});
-        m_mainLayer->addChild(opacLblTxt);
+        addRowLabel("Opacity", cx, y);
+        m_opacLbl = addStepper(y,
+            fmt::format("{:.2f}", S_float((m_key + "-opacity").c_str())),
+            menu_selector(LabelSettingPopup::onOpacMinus),
+            menu_selector(LabelSettingPopup::onOpacPlus));
+        y -= rowGap;
 
-        auto* minusOp = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("-", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onOpacMinus));
-        minusOp->setPosition({cx + 10.f, cy - 10.f});
+        // Position X row
+        addRowLabel("Pos X", cx, y);
+        m_xLbl = addStepper(y,
+            fmt::format("{:.0f}", S_float((m_key + "-x").c_str())),
+            menu_selector(LabelSettingPopup::onXMinus),
+            menu_selector(LabelSettingPopup::onXPlus));
+        y -= rowGap;
 
-        m_opacLbl = CCLabelBMFont::create(
-            fmt::format("{:.2f}", S_float((m_key + "-opacity").c_str())).c_str(), "bigFont.fnt");
-        m_opacLbl->setScale(0.4f);
-        m_opacLbl->setPosition({cx + 40.f, cy - 10.f});
-        m_mainLayer->addChild(m_opacLbl);
+        // Position Y row
+        addRowLabel("Pos Y", cx, y);
+        m_yLbl = addStepper(y,
+            fmt::format("{:.0f}", S_float((m_key + "-y").c_str())),
+            menu_selector(LabelSettingPopup::onYMinus),
+            menu_selector(LabelSettingPopup::onYPlus));
+        y -= rowGap;
 
-        auto* plusOp = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("+", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onOpacPlus));
-        plusOp->setPosition({cx + 70.f, cy - 10.f});
+        // Color rows
+        addRowLabel("Red", cx, y);
+        m_rLbl = addStepper(y,
+            fmt::format("{}", S_int((m_key + "-r").c_str())),
+            menu_selector(LabelSettingPopup::onRMinus),
+            menu_selector(LabelSettingPopup::onRPlus));
+        y -= rowGap;
 
-        m_buttonMenu->addChild(minusOp);
-        m_buttonMenu->addChild(plusOp);
+        addRowLabel("Green", cx, y);
+        m_gLbl = addStepper(y,
+            fmt::format("{}", S_int((m_key + "-g").c_str())),
+            menu_selector(LabelSettingPopup::onGMinus),
+            menu_selector(LabelSettingPopup::onGPlus));
+        y -= rowGap;
 
-        // Color row
-        auto* colorTxt = CCLabelBMFont::create("Color  R", "bigFont.fnt");
-        colorTxt->setScale(0.45f);
-        colorTxt->setPosition({cx - 60.f, cy - 40.f});
-        m_mainLayer->addChild(colorTxt);
-
-        auto* rMinusBtn = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("-", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onRMinus));
-        rMinusBtn->setPosition({cx + 10.f, cy - 40.f});
-
-        m_rLbl = CCLabelBMFont::create(
-            fmt::format("{}", S_int((m_key + "-r").c_str())).c_str(), "bigFont.fnt");
-        m_rLbl->setScale(0.4f);
-        m_rLbl->setPosition({cx + 40.f, cy - 40.f});
-        m_mainLayer->addChild(m_rLbl);
-
-        auto* rPlusBtn = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("+", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onRPlus));
-        rPlusBtn->setPosition({cx + 70.f, cy - 40.f});
-
-        m_buttonMenu->addChild(rMinusBtn);
-        m_buttonMenu->addChild(rPlusBtn);
-
-        // G row
-        auto* gTxt = CCLabelBMFont::create("G", "bigFont.fnt");
-        gTxt->setScale(0.45f);
-        gTxt->setPosition({cx - 60.f, cy - 60.f});
-        m_mainLayer->addChild(gTxt);
-
-        auto* gMinusBtn = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("-", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onGMinus));
-        gMinusBtn->setPosition({cx + 10.f, cy - 60.f});
-
-        m_gLbl = CCLabelBMFont::create(
-            fmt::format("{}", S_int((m_key + "-g").c_str())).c_str(), "bigFont.fnt");
-        m_gLbl->setScale(0.4f);
-        m_gLbl->setPosition({cx + 40.f, cy - 60.f});
-        m_mainLayer->addChild(m_gLbl);
-
-        auto* gPlusBtn = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("+", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onGPlus));
-        gPlusBtn->setPosition({cx + 70.f, cy - 60.f});
-
-        m_buttonMenu->addChild(gMinusBtn);
-        m_buttonMenu->addChild(gPlusBtn);
-
-        // B row
-        auto* bTxt = CCLabelBMFont::create("B", "bigFont.fnt");
-        bTxt->setScale(0.45f);
-        bTxt->setPosition({cx - 60.f, cy - 80.f});
-        m_mainLayer->addChild(bTxt);
-
-        auto* bMinusBtn = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("-", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onBMinus));
-        bMinusBtn->setPosition({cx + 10.f, cy - 80.f});
-
-        m_bLbl = CCLabelBMFont::create(
-            fmt::format("{}", S_int((m_key + "-b").c_str())).c_str(), "bigFont.fnt");
-        m_bLbl->setScale(0.4f);
-        m_bLbl->setPosition({cx + 40.f, cy - 80.f});
-        m_mainLayer->addChild(m_bLbl);
-
-        auto* bPlusBtn = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("+", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onBPlus));
-        bPlusBtn->setPosition({cx + 70.f, cy - 80.f});
-
-        m_buttonMenu->addChild(bMinusBtn);
-        m_buttonMenu->addChild(bPlusBtn);
+        addRowLabel("Blue", cx, y);
+        m_bLbl = addStepper(y,
+            fmt::format("{}", S_int((m_key + "-b").c_str())),
+            menu_selector(LabelSettingPopup::onBMinus),
+            menu_selector(LabelSettingPopup::onBPlus));
 
         return true;
     }
 
-    CCLabelBMFont* m_rLbl = nullptr;
-    CCLabelBMFont* m_gLbl = nullptr;
-    CCLabelBMFont* m_bLbl = nullptr;
+    void addRowLabel(const char* text, float cx, float y) {
+        auto* lbl = CCLabelBMFont::create(text, "bigFont.fnt");
+        lbl->setAnchorPoint({0.f, 0.5f});
+        lbl->setScale(0.42f);
+        lbl->setPosition({cx - 130.f, y});
+        m_mainLayer->addChild(lbl);
+    }
+
+    CCLabelBMFont* addStepper(float y, const std::string& valueText,
+                               SEL_MenuHandler minusSel, SEL_MenuHandler plusSel) {
+        float cx = PW / 2.f;
+
+        auto* minusBtn = CCMenuItemSpriteExtra::create(
+            ButtonSprite::create("-", "bigFont.fnt", "GJ_button_01.png", 0.7f),
+            this, minusSel);
+        minusBtn->setPosition({cx + 50.f, y});
+
+        auto* valLbl = CCLabelBMFont::create(valueText.c_str(), "bigFont.fnt");
+        valLbl->setScale(0.42f);
+        valLbl->setPosition({cx + 95.f, y});
+        m_mainLayer->addChild(valLbl);
+
+        auto* plusBtn = CCMenuItemSpriteExtra::create(
+            ButtonSprite::create("+", "bigFont.fnt", "GJ_button_01.png", 0.7f),
+            this, plusSel);
+        plusBtn->setPosition({cx + 140.f, y});
+
+        m_buttonMenu->addChild(minusBtn);
+        m_buttonMenu->addChild(plusBtn);
+
+        return valLbl;
+    }
+
+    void refreshPreview() {
+        if (!m_preview) return;
+        m_preview->setScale(S_float((m_key + "-scale").c_str()));
+        m_preview->setOpacity((GLubyte)(S_float((m_key + "-opacity").c_str()) * 255.f));
+        m_preview->setColor({(GLubyte)S_int((m_key + "-r").c_str()),
+                             (GLubyte)S_int((m_key + "-g").c_str()),
+                             (GLubyte)S_int((m_key + "-b").c_str())});
+    }
 
     void onToggle(CCObject* sender) {
         auto* tog = static_cast<CCMenuItemToggler*>(sender);
@@ -499,12 +499,21 @@ protected:
         float v = std::clamp(S_float((m_key + "-scale").c_str()) + delta, 0.1f, 2.0f);
         (void)Mod::get()->setSettingValue<double>(m_key + "-scale", (double)v);
         if (m_scaleLbl) m_scaleLbl->setString(fmt::format("{:.2f}", v).c_str());
+        refreshPreview();
     }
 
     void adjOpac(float delta) {
         float v = std::clamp(S_float((m_key + "-opacity").c_str()) + delta, 0.0f, 1.0f);
         (void)Mod::get()->setSettingValue<double>(m_key + "-opacity", (double)v);
         if (m_opacLbl) m_opacLbl->setString(fmt::format("{:.2f}", v).c_str());
+        refreshPreview();
+    }
+
+    void adjPos(const std::string& axis, float delta) {
+        float v = S_float((m_key + "-" + axis).c_str()) + delta;
+        (void)Mod::get()->setSettingValue<double>(m_key + "-" + axis, (double)v);
+        auto* lbl = axis == "x" ? m_xLbl : m_yLbl;
+        if (lbl) lbl->setString(fmt::format("{:.0f}", v).c_str());
     }
 
     void adjColor(const std::string& ch, int delta) {
@@ -512,12 +521,17 @@ protected:
         (void)Mod::get()->setSettingValue<int64_t>(m_key + "-" + ch, (int64_t)v);
         auto* lbl = ch == "r" ? m_rLbl : ch == "g" ? m_gLbl : m_bLbl;
         if (lbl) lbl->setString(fmt::format("{}", v).c_str());
+        refreshPreview();
     }
 
     void onScaleMinus(CCObject*) { adjScale(-0.05f); }
     void onScalePlus (CCObject*) { adjScale( 0.05f); }
     void onOpacMinus (CCObject*) { adjOpac (-0.05f); }
     void onOpacPlus  (CCObject*) { adjOpac ( 0.05f); }
+    void onXMinus(CCObject*) { adjPos("x", -5.f); }
+    void onXPlus (CCObject*) { adjPos("x",  5.f); }
+    void onYMinus(CCObject*) { adjPos("y", -5.f); }
+    void onYPlus (CCObject*) { adjPos("y",  5.f); }
     void onRMinus(CCObject*) { adjColor("r", -5); }
     void onRPlus (CCObject*) { adjColor("r",  5); }
     void onGMinus(CCObject*) { adjColor("g", -5); }
@@ -543,8 +557,8 @@ class LabelsPopup : public geode::Popup {
 protected:
     struct Row { std::string key; std::string name; };
 
-    static constexpr float PW = 280.f;
-    static constexpr float PH = 260.f;
+    static constexpr float PW = 340.f;
+    static constexpr float PH = 320.f;
 
     bool init() {
         if (!Popup::init(PW, PH))
@@ -564,13 +578,21 @@ protected:
             {"objects",  "Objects"},
         };
 
-        float rowH   = 26.f;
+        float rowH   = 34.f;
         float totalH = rowH * (float)rows.size();
-        float listW  = PW - 20.f;
-        float listH  = PH - 55.f;
+        float listW  = PW - 30.f;
+        float listH  = PH - 70.f;
+
+        // Panel background behind the scroll list
+        auto* panel = CCScale9Sprite::create("square02b_001.png");
+        panel->setContentSize({listW + 6.f, listH + 6.f});
+        panel->setOpacity(90);
+        panel->setColor({0, 0, 0});
+        panel->setPosition({PW / 2.f, listH / 2.f + 12.f});
+        m_mainLayer->addChild(panel, -1);
 
         auto* scroll = ScrollLayer::create({listW, listH});
-        scroll->setPosition({10.f, 10.f});
+        scroll->setPosition({15.f, 15.f});
         m_mainLayer->addChild(scroll);
 
         auto* content = CCNode::create();
@@ -580,27 +602,39 @@ protected:
             auto& row = rows[i];
             float y = totalH - rowH * (float)i - rowH / 2.f;
 
-            // Label name button — opens per-label popup
-            auto* nameLbl = CCLabelBMFont::create(row.name.c_str(), "bigFont.fnt");
-            nameLbl->setScale(0.38f);
-            auto* nameBtn = CCMenuItemSpriteExtra::create(
-                nameLbl, this, menu_selector(LabelsPopup::onLabelBtn));
-            nameBtn->setTag(i);
-
-            // Toggle
-            auto* tog = CCMenuItemToggler::createWithStandardSprites(
-                this, menu_selector(LabelsPopup::onToggle), 0.6f);
-            tog->toggle(S_bool((row.key + "-show").c_str()));
-            tog->setTag(i);
+            // Alternating row stripe for readability
+            if (i % 2 == 0) {
+                auto* stripe = CCLayerColor::create({255, 255, 255, 18}, listW, rowH);
+                stripe->setPosition({0.f, y - rowH / 2.f});
+                content->addChild(stripe);
+            }
 
             auto* rowMenu = CCMenu::create();
             rowMenu->setPosition({0.f, 0.f});
 
-            nameBtn->setPosition({listW * 0.3f, y});
-            tog->setPosition({listW - 16.f, y});
+            // Label name (static text, left aligned)
+            auto* nameLbl = CCLabelBMFont::create(row.name.c_str(), "bigFont.fnt");
+            nameLbl->setAnchorPoint({0.f, 0.5f});
+            nameLbl->setScale(0.42f);
+            nameLbl->setPosition({10.f, y});
+            content->addChild(nameLbl);
 
-            rowMenu->addChild(nameBtn);
+            // Toggle
+            auto* tog = CCMenuItemToggler::createWithStandardSprites(
+                this, menu_selector(LabelsPopup::onToggle), 0.55f);
+            tog->toggle(S_bool((row.key + "-show").c_str()));
+            tog->setTag(i);
+            tog->setPosition({listW - 60.f, y});
             rowMenu->addChild(tog);
+
+            // Configure button — opens the sub-menu for this label
+            auto* cfgSpr = ButtonSprite::create("Edit", "bigFont.fnt", "GJ_button_04.png", 0.6f);
+            auto* cfgBtn = CCMenuItemSpriteExtra::create(
+                cfgSpr, this, menu_selector(LabelsPopup::onLabelBtn));
+            cfgBtn->setTag(i);
+            cfgBtn->setPosition({listW - 20.f, y});
+            rowMenu->addChild(cfgBtn);
+
             content->addChild(rowMenu);
         }
 
