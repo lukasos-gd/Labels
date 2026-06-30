@@ -21,7 +21,7 @@
   },
   "resources": {
     "sprites": [
-      "resources/GE_square01.png"
+      "resources/labels_bg.png"
     ]
   },
   "links": {
@@ -119,4 +119,4 @@
     "objects-x":       { "name": "Object Count X",          "type": "float", "default": 5.0,  "min": 0.0, "max": 500.0 },
     "objects-y":       { "name": "Object Count Y (from top)","type": "float","default": 119.0,"min": 0.0, "max": 500.0 }
   }
-}
+    }
