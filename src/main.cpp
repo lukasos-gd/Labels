@@ -489,7 +489,7 @@ protected:
         minusBg->setContentSize({28.f, 28.f});
         auto* minusLbl = CCLabelBMFont::create("-", "bigFont.fnt");
         minusLbl->setScale(0.45f);
-        minusLbl->setPosition({14.f, 14.f});
+        minusLbl->setPosition({14.f, 12.f});
         minusBg->addChild(minusLbl);
         auto* minusBtn = CCMenuItemSpriteExtra::create(minusBg, this, minusSel);
         minusBtn->setPosition({minusX, y});
