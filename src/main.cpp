@@ -356,9 +356,6 @@ protected:
 
         float previewH = 36.f;
         float previewY = PH - 56.f;
-        auto* previewBg = CCLayerColor::create({0, 0, 0, 200}, PW - 56.f, previewH);
-        previewBg->setPosition({28.f, previewY - previewH / 2.f});
-        m_mainLayer->addChild(previewBg);
 
         m_preview = CCLabelBMFont::create(labelName.c_str(), "bigFont.fnt");
         m_preview->setScale(0.5f);
@@ -374,12 +371,9 @@ protected:
         float listX = 18.f;
         float listY = 16.f;
 
-        auto* border = CCLayerColor::create({0, 0, 0, 120}, listW + 4.f, listH + 4.f);
-        border->setPosition({listX - 2.f, listY - 2.f});
-        m_mainLayer->addChild(border, -2);
-
-        auto* panel = CCLayerColor::create({26, 18, 12, 200}, listW, listH);
-        panel->setPosition({listX, listY});
+        auto* panel = CCScale9Sprite::create("GE_square03-uhd.png");
+        panel->setContentSize({listW, listH});
+        panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
         m_mainLayer->addChild(panel, -1);
 
         m_scroll = ScrollLayer::create({listW, listH});
@@ -506,15 +500,13 @@ protected:
                             SEL_MenuHandler minusSel, SEL_MenuHandler plusSel,
                             std::function<void(const std::string&)> onType) {
         auto* minusBtn = CCMenuItemSpriteExtra::create(
-            ButtonSprite::create("-", "bigFont.fnt", "GJ_button_01.png", 0.5f),
+            ButtonSprite::create("-", "bigFont.fnt", "GJ_button_01.png", 0.9f),
             this, minusSel);
-        minusBtn->setScale(0.55f);
         minusBtn->setPosition({minusX, y});
 
         auto* plusBtn = CCMenuItemSpriteExtra::create(
-            ButtonSprite::create("+", "bigFont.fnt", "GJ_button_01.png", 0.5f),
+            ButtonSprite::create("+", "bigFont.fnt", "GJ_button_01.png", 0.9f),
             this, plusSel);
-        plusBtn->setScale(0.55f);
         plusBtn->setPosition({plusX, y});
 
         auto* m = CCMenu::create();
@@ -659,12 +651,9 @@ protected:
         float listY = 16.f;
         float contentH = rowH * (float)rows.size();
 
-        auto* border = CCLayerColor::create({0, 0, 0, 120}, listW + 4.f, listH + 4.f);
-        border->setPosition({listX - 2.f, listY - 2.f});
-        m_mainLayer->addChild(border, -2);
-
-        auto* panel = CCLayerColor::create({26, 18, 12, 200}, listW, listH);
-        panel->setPosition({listX, listY});
+        auto* panel = CCScale9Sprite::create("GE_square03-uhd.png");
+        panel->setContentSize({listW, listH});
+        panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
         m_mainLayer->addChild(panel, -1);
 
         auto* scroll = ScrollLayer::create({listW, listH});
@@ -699,10 +688,9 @@ protected:
             tog->setTag(i);
             tog->setPosition({listW - 76.f, y});
 
-            auto* cfgSpr = ButtonSprite::create("Edit", "bigFont.fnt", "GJ_button_04.png", 0.4f);
+            auto* cfgSpr = ButtonSprite::create("Edit", "bigFont.fnt", "GJ_button_04.png", 0.26f);
             auto* cfgBtn = CCMenuItemSpriteExtra::create(
                 cfgSpr, this, menu_selector(LabelsPopup::onLabelBtn));
-            cfgBtn->setScale(0.65f);
             cfgBtn->setTag(i);
             cfgBtn->setPosition({listW - 30.f, y});
 
