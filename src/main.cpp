@@ -357,10 +357,8 @@ protected:
         float listX = 18.f;
         float listY = 16.f;
 
-        auto* panel = CCScale9Sprite::create("GE_square03-uhd.png");
+        auto* panel = CCScale9Sprite::create("GE_square01-uhd.png");
         panel->setContentSize({listW, listH});
-        panel->setColor({90, 60, 38});
-        panel->setOpacity(255);
         panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
         m_mainLayer->addChild(panel, -1);
 
@@ -639,10 +637,8 @@ protected:
         float listY = 16.f;
         float contentH = rowH * (float)rows.size();
 
-        auto* panel = CCScale9Sprite::create("GE_square03-uhd.png");
+        auto* panel = CCScale9Sprite::create("GE_square01-uhd.png");
         panel->setContentSize({listW, listH});
-        panel->setColor({90, 60, 38});
-        panel->setOpacity(255);
         panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
         m_mainLayer->addChild(panel, -1);
 
@@ -678,13 +674,16 @@ protected:
             tog->setTag(i);
             tog->setPosition({listW - 70.f, y});
 
-            auto* cfgSpr = ButtonSprite::create("Edit", "bigFont.fnt", "GJ_button_04.png", 1.f);
-            float targetW = 44.f;
-            float realW = cfgSpr->getContentSize().width;
-            float fitScale = targetW / realW;
+            auto* cfgBg = CCScale9Sprite::create("GJ_button_04.png");
+            cfgBg->setContentSize({44.f, 24.f});
+
+            auto* cfgLbl = CCLabelBMFont::create("Edit", "bigFont.fnt");
+            cfgLbl->setScale(0.35f);
+            cfgLbl->setPosition({22.f, 12.f});
+            cfgBg->addChild(cfgLbl);
+
             auto* cfgBtn = CCMenuItemSpriteExtra::create(
-                cfgSpr, this, menu_selector(LabelsPopup::onLabelBtn));
-            cfgBtn->setScale(fitScale);
+                cfgBg, this, menu_selector(LabelsPopup::onLabelBtn));
             cfgBtn->setTag(i);
             cfgBtn->setPosition({listW - 28.f, y});
 
@@ -780,5 +779,5 @@ class $modify(MyPauseLayer, PauseLayer) {
 };
 
 $on_mod(Loaded) {
-    log::info("Labels v1.0.0 loaded");
+    log::info("Labels v2.2.0 loaded");
 }
