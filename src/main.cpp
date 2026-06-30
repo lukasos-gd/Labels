@@ -357,10 +357,17 @@ protected:
         float listX = 18.f;
         float listY = 16.f;
 
-        auto* panel = CCScale9Sprite::create("GE_square01-uhd.png"_spr);
-        panel->setContentSize({listW, listH});
-        panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
-        m_mainLayer->addChild(panel, -1);
+        auto* panel = CCScale9Sprite::create("labels_bg.png"_spr);
+        if (!panel) {
+            log::error("labels_bg.png\"_spr failed to load, using fallback color");
+            auto* fallback = CCLayerColor::create({255, 0, 255, 220}, listW, listH);
+            fallback->setPosition({listX, listY});
+            m_mainLayer->addChild(fallback, -1);
+        } else {
+            panel->setContentSize({listW, listH});
+            panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
+            m_mainLayer->addChild(panel, -1);
+        }
 
         m_scroll = ScrollLayer::create({listW, listH});
         m_scroll->setPosition({listX, listY});
@@ -645,10 +652,17 @@ protected:
         float listY = 16.f;
         float contentH = rowH * (float)rows.size();
 
-        auto* panel = CCScale9Sprite::create("GE_square01-uhd.png"_spr);
-        panel->setContentSize({listW, listH});
-        panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
-        m_mainLayer->addChild(panel, -1);
+        auto* panel = CCScale9Sprite::create("labels_bg.png"_spr);
+        if (!panel) {
+            log::error("labels_bg.png\"_spr failed to load, using fallback color");
+            auto* fallback = CCLayerColor::create({255, 0, 255, 220}, listW, listH);
+            fallback->setPosition({listX, listY});
+            m_mainLayer->addChild(fallback, -1);
+        } else {
+            panel->setContentSize({listW, listH});
+            panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
+            m_mainLayer->addChild(panel, -1);
+        }
 
         auto* scroll = ScrollLayer::create({listW, listH});
         scroll->setPosition({listX, listY});
