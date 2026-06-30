@@ -20,8 +20,7 @@
     }
   },
   "resources": {
-    "spritesheets": {},
-    "files": [
+    "sprites": [
       "resources/GE_square01-uhd.png"
     ]
   },
@@ -120,4 +119,4 @@
     "objects-x":       { "name": "Object Count X",          "type": "float", "default": 5.0,  "min": 0.0, "max": 500.0 },
     "objects-y":       { "name": "Object Count Y (from top)","type": "float","default": 119.0,"min": 0.0, "max": 500.0 }
   }
-    }
+}
