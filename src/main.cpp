@@ -3,6 +3,7 @@
 #include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/PauseLayer.hpp>
 #include <Geode/ui/GeodeUI.hpp>
+#include <Geode/ui/Popup.hpp>
 #include <chrono>
 
 using namespace geode::prelude;
