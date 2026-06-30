@@ -357,13 +357,17 @@ protected:
         float listX = 18.f;
         float listY = 16.f;
 
-        auto* panel = CCScale9Sprite::create("labels_bg.png"_spr);
-        if (!panel) {
-            log::error("labels_bg.png\"_spr failed to load, using fallback color");
+        auto* testSpr = CCSprite::create("labels_bg.png"_spr);
+        bool spriteOk = testSpr && testSpr->getTexture() != nullptr;
+        log::info("labels_bg.png test sprite: ptr={}, texture={}",
+            (void*)testSpr, spriteOk ? "valid" : "MISSING");
+
+        if (!spriteOk) {
             auto* fallback = CCLayerColor::create({255, 0, 255, 220}, listW, listH);
             fallback->setPosition({listX, listY});
             m_mainLayer->addChild(fallback, -1);
         } else {
+            auto* panel = CCScale9Sprite::create("labels_bg.png"_spr);
             panel->setContentSize({listW, listH});
             panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
             m_mainLayer->addChild(panel, -1);
@@ -652,13 +656,17 @@ protected:
         float listY = 16.f;
         float contentH = rowH * (float)rows.size();
 
-        auto* panel = CCScale9Sprite::create("labels_bg.png"_spr);
-        if (!panel) {
-            log::error("labels_bg.png\"_spr failed to load, using fallback color");
+        auto* testSpr2 = CCSprite::create("labels_bg.png"_spr);
+        bool spriteOk2 = testSpr2 && testSpr2->getTexture() != nullptr;
+        log::info("labels_bg.png test sprite (popup2): ptr={}, texture={}",
+            (void*)testSpr2, spriteOk2 ? "valid" : "MISSING");
+
+        if (!spriteOk2) {
             auto* fallback = CCLayerColor::create({255, 0, 255, 220}, listW, listH);
             fallback->setPosition({listX, listY});
             m_mainLayer->addChild(fallback, -1);
         } else {
+            auto* panel = CCScale9Sprite::create("labels_bg.png"_spr);
             panel->setContentSize({listW, listH});
             panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
             m_mainLayer->addChild(panel, -1);
@@ -801,5 +809,5 @@ class $modify(MyPauseLayer, PauseLayer) {
 };
 
 $on_mod(Loaded) {
-    log::info("Labels v2.2.0 loaded");
+    log::info("Labels v1.0.0 loaded");
 }
