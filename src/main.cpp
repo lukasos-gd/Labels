@@ -352,27 +352,15 @@ protected:
         m_labelName = labelName;
         setTitle(labelName.c_str());
 
-        float cx = PW / 2.f;
-
-        float previewH = 36.f;
-        float previewY = PH - 56.f;
-
-        m_preview = CCLabelBMFont::create(labelName.c_str(), "bigFont.fnt");
-        m_preview->setScale(0.5f);
-        m_preview->setOpacity((GLubyte)(S_float((m_key + "-opacity").c_str()) * 255.f));
-        m_preview->setColor({(GLubyte)S_int((m_key + "-r").c_str()),
-                             (GLubyte)S_int((m_key + "-g").c_str()),
-                             (GLubyte)S_int((m_key + "-b").c_str())});
-        m_preview->setPosition({cx, previewY});
-        m_mainLayer->addChild(m_preview);
-
         float listW = PW - 36.f;
-        float listH = previewY - previewH / 2.f - 14.f - 16.f;
+        float listH = PH - 56.f - 16.f;
         float listX = 18.f;
         float listY = 16.f;
 
         auto* panel = CCScale9Sprite::create("GE_square03-uhd.png");
         panel->setContentSize({listW, listH});
+        panel->setColor({90, 60, 38});
+        panel->setOpacity(255);
         panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
         m_mainLayer->addChild(panel, -1);
 
@@ -653,6 +641,8 @@ protected:
 
         auto* panel = CCScale9Sprite::create("GE_square03-uhd.png");
         panel->setContentSize({listW, listH});
+        panel->setColor({90, 60, 38});
+        panel->setOpacity(255);
         panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
         m_mainLayer->addChild(panel, -1);
 
@@ -686,13 +676,17 @@ protected:
                 this, menu_selector(LabelsPopup::onToggle), 0.5f);
             tog->toggle(S_bool((row.key + "-show").c_str()));
             tog->setTag(i);
-            tog->setPosition({listW - 76.f, y});
+            tog->setPosition({listW - 70.f, y});
 
-            auto* cfgSpr = ButtonSprite::create("Edit", "bigFont.fnt", "GJ_button_04.png", 0.26f);
+            auto* cfgSpr = ButtonSprite::create("Edit", "bigFont.fnt", "GJ_button_04.png", 1.f);
+            float targetW = 44.f;
+            float realW = cfgSpr->getContentSize().width;
+            float fitScale = targetW / realW;
             auto* cfgBtn = CCMenuItemSpriteExtra::create(
                 cfgSpr, this, menu_selector(LabelsPopup::onLabelBtn));
+            cfgBtn->setScale(fitScale);
             cfgBtn->setTag(i);
-            cfgBtn->setPosition({listW - 30.f, y});
+            cfgBtn->setPosition({listW - 28.f, y});
 
             auto* rowMenu = CCMenu::create();
             rowMenu->setPosition({0.f, 0.f});
