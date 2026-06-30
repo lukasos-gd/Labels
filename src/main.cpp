@@ -3,6 +3,7 @@
 #include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/PauseLayer.hpp>
 #include <Geode/ui/GeodeUI.hpp>
+#include <Geode/ui/TextInput.hpp>
 #include <chrono>
 
 using namespace geode::prelude;
@@ -12,7 +13,6 @@ static bool  S_bool (const char* k) { return Mod::get()->getSettingValue<bool>(k
 static float S_float(const char* k) { return (float)Mod::get()->getSettingValue<double>(k); }
 static int   S_int  (const char* k) { return (int)Mod::get()->getSettingValue<int64_t>(k); }
 
-// ── HUDLayer ──────────────────────────────────────────────────────────────────
 
 class HUDLayer : public CCLayer {
 public:
@@ -222,7 +222,6 @@ public:
     }
 };
 
-// ── PlayLayer hook ────────────────────────────────────────────────────────────
 
 class $modify(MyPlayLayer, PlayLayer) {
 public:
@@ -308,7 +307,6 @@ public:
     }
 };
 
-// ── CPS hook ──────────────────────────────────────────────────────────────────
 
 struct MyPlayerObject : geode::Modify<MyPlayerObject, PlayerObject> {
     static void onModify(auto& self) {
@@ -326,24 +324,23 @@ struct MyPlayerObject : geode::Modify<MyPlayerObject, PlayerObject> {
     }
 };
 
-// ── Per-label popup ───────────────────────────────────────────────────────────
 
 class LabelSettingPopup : public geode::Popup {
 protected:
     static constexpr float PW = 360.f;
-    static constexpr float PH = 360.f;
+    static constexpr float PH = 380.f;
 
     std::string m_key;
     std::string m_labelName;
 
-    CCLabelBMFont* m_preview  = nullptr;
-    CCLabelBMFont* m_scaleLbl = nullptr;
-    CCLabelBMFont* m_opacLbl  = nullptr;
-    CCLabelBMFont* m_xLbl     = nullptr;
-    CCLabelBMFont* m_yLbl     = nullptr;
-    CCLabelBMFont* m_rLbl     = nullptr;
-    CCLabelBMFont* m_gLbl     = nullptr;
-    CCLabelBMFont* m_bLbl     = nullptr;
+    CCLabelBMFont* m_preview = nullptr;
+    TextInput* m_scaleInput = nullptr;
+    TextInput* m_opacInput  = nullptr;
+    TextInput* m_xInput     = nullptr;
+    TextInput* m_yInput     = nullptr;
+    TextInput* m_rInput     = nullptr;
+    TextInput* m_gInput     = nullptr;
+    TextInput* m_bInput     = nullptr;
 
     bool init(std::string const& key, std::string const& labelName) {
         if (!Popup::init(PW, PH))
@@ -354,29 +351,21 @@ protected:
         setTitle(labelName.c_str());
 
         float cx = PW / 2.f;
-
-        // Nicer background panel behind the preview/controls — strong contrast
         float panelW = PW - 40.f;
         float panelH = PH - 90.f;
-        auto* panel = CCScale9Sprite::create("square02b_001.png");
-        panel->setContentSize({panelW, panelH});
-        panel->setOpacity(160);
-        panel->setColor({20, 14, 10});
-        panel->setPosition({cx, panelH / 2.f + 16.f});
+
+        auto* panel = CCLayerColor::create({18, 12, 8, 180}, panelW, panelH);
+        panel->setPosition({cx - panelW / 2.f, 16.f});
         m_mainLayer->addChild(panel, -1);
 
         float topY = PH - 60.f;
 
-        // Live preview chip — always rendered at a fixed legible scale
-        auto* previewBg = CCScale9Sprite::create("square02b_001.png");
-        previewBg->setContentSize({panelW - 16.f, 32.f});
-        previewBg->setOpacity(200);
-        previewBg->setColor({0, 0, 0});
-        previewBg->setPosition({cx, topY});
+        auto* previewBg = CCLayerColor::create({0, 0, 0, 200}, panelW - 16.f, 32.f);
+        previewBg->setPosition({cx - (panelW - 16.f) / 2.f, topY - 16.f});
         m_mainLayer->addChild(previewBg);
 
         m_preview = CCLabelBMFont::create(labelName.c_str(), "bigFont.fnt");
-        m_preview->setScale(0.5f); // fixed preview scale; actual scale only affects in-game size
+        m_preview->setScale(0.5f);
         m_preview->setOpacity((GLubyte)(S_float((m_key + "-opacity").c_str()) * 255.f));
         m_preview->setColor({(GLubyte)S_int((m_key + "-r").c_str()),
                              (GLubyte)S_int((m_key + "-g").c_str()),
@@ -384,17 +373,14 @@ protected:
         m_preview->setPosition({cx, topY});
         m_mainLayer->addChild(m_preview);
 
-        float rowGap = 32.f;
-        float y = topY - 40.f;
-
-        // Column anchors, all relative to popup center, guaranteed to fit within PW
-        float labelX  = cx - panelW / 2.f + 14.f;  // left edge of panel + padding
-        float minusX  = cx + panelW / 2.f - 92.f;
-        float valueX  = cx + panelW / 2.f - 56.f;
-        float plusX   = cx + panelW / 2.f - 18.f;
+        float rowGap = 36.f;
+        float y = topY - 44.f;
+        float labelX  = cx - panelW / 2.f + 14.f;
+        float minusX  = cx + panelW / 2.f - 130.f;
+        float inputX  = cx + panelW / 2.f - 70.f;
+        float plusX   = cx + panelW / 2.f - 14.f;
         float toggleX = cx + panelW / 2.f - 30.f;
 
-        // Toggle row
         addRowLabel("Show", labelX, y);
         auto* tog = CCMenuItemToggler::createWithStandardSprites(
             this, menu_selector(LabelSettingPopup::onToggle), 0.65f);
@@ -403,58 +389,60 @@ protected:
         m_buttonMenu->addChild(tog);
         y -= rowGap;
 
-        // Scale row
         addRowLabel("Scale", labelX, y);
-        m_scaleLbl = addStepper(y, minusX, valueX, plusX,
+        m_scaleInput = addInputRow(y, minusX, inputX, plusX,
             fmt::format("{:.2f}", S_float((m_key + "-scale").c_str())),
             menu_selector(LabelSettingPopup::onScaleMinus),
-            menu_selector(LabelSettingPopup::onScalePlus));
+            menu_selector(LabelSettingPopup::onScalePlus),
+            [this](const std::string& s) { setScaleFromText(s); });
         y -= rowGap;
 
-        // Opacity row
         addRowLabel("Opacity", labelX, y);
-        m_opacLbl = addStepper(y, minusX, valueX, plusX,
+        m_opacInput = addInputRow(y, minusX, inputX, plusX,
             fmt::format("{:.2f}", S_float((m_key + "-opacity").c_str())),
             menu_selector(LabelSettingPopup::onOpacMinus),
-            menu_selector(LabelSettingPopup::onOpacPlus));
+            menu_selector(LabelSettingPopup::onOpacPlus),
+            [this](const std::string& s) { setOpacFromText(s); });
         y -= rowGap;
 
-        // Position X row
         addRowLabel("Pos X", labelX, y);
-        m_xLbl = addStepper(y, minusX, valueX, plusX,
+        m_xInput = addInputRow(y, minusX, inputX, plusX,
             fmt::format("{:.0f}", S_float((m_key + "-x").c_str())),
             menu_selector(LabelSettingPopup::onXMinus),
-            menu_selector(LabelSettingPopup::onXPlus));
+            menu_selector(LabelSettingPopup::onXPlus),
+            [this](const std::string& s) { setPosFromText("x", s); });
         y -= rowGap;
 
-        // Position Y row
         addRowLabel("Pos Y", labelX, y);
-        m_yLbl = addStepper(y, minusX, valueX, plusX,
+        m_yInput = addInputRow(y, minusX, inputX, plusX,
             fmt::format("{:.0f}", S_float((m_key + "-y").c_str())),
             menu_selector(LabelSettingPopup::onYMinus),
-            menu_selector(LabelSettingPopup::onYPlus));
+            menu_selector(LabelSettingPopup::onYPlus),
+            [this](const std::string& s) { setPosFromText("y", s); });
         y -= rowGap;
 
-        // Color rows
         addRowLabel("Red", labelX, y);
-        m_rLbl = addStepper(y, minusX, valueX, plusX,
+        m_rInput = addInputRow(y, minusX, inputX, plusX,
             fmt::format("{}", S_int((m_key + "-r").c_str())),
             menu_selector(LabelSettingPopup::onRMinus),
-            menu_selector(LabelSettingPopup::onRPlus));
+            menu_selector(LabelSettingPopup::onRPlus),
+            [this](const std::string& s) { setColorFromText("r", s); });
         y -= rowGap;
 
         addRowLabel("Green", labelX, y);
-        m_gLbl = addStepper(y, minusX, valueX, plusX,
+        m_gInput = addInputRow(y, minusX, inputX, plusX,
             fmt::format("{}", S_int((m_key + "-g").c_str())),
             menu_selector(LabelSettingPopup::onGMinus),
-            menu_selector(LabelSettingPopup::onGPlus));
+            menu_selector(LabelSettingPopup::onGPlus),
+            [this](const std::string& s) { setColorFromText("g", s); });
         y -= rowGap;
 
         addRowLabel("Blue", labelX, y);
-        m_bLbl = addStepper(y, minusX, valueX, plusX,
+        m_bInput = addInputRow(y, minusX, inputX, plusX,
             fmt::format("{}", S_int((m_key + "-b").c_str())),
             menu_selector(LabelSettingPopup::onBMinus),
-            menu_selector(LabelSettingPopup::onBPlus));
+            menu_selector(LabelSettingPopup::onBPlus),
+            [this](const std::string& s) { setColorFromText("b", s); });
 
         return true;
     }
@@ -467,34 +455,38 @@ protected:
         m_mainLayer->addChild(lbl);
     }
 
-    CCLabelBMFont* addStepper(float y, float minusX, float valueX, float plusX,
-                               const std::string& valueText,
-                               SEL_MenuHandler minusSel, SEL_MenuHandler plusSel) {
+    TextInput* addInputRow(float y, float minusX, float inputX, float plusX,
+                            const std::string& valueText,
+                            SEL_MenuHandler minusSel, SEL_MenuHandler plusSel,
+                            std::function<void(const std::string&)> onType) {
         auto* minusBtn = CCMenuItemSpriteExtra::create(
-            ButtonSprite::create("-", "bigFont.fnt", "GJ_button_01.png", 0.6f),
+            ButtonSprite::create("-", "bigFont.fnt", "GJ_button_01.png", 0.5f),
             this, minusSel);
+        minusBtn->setScale(0.55f);
         minusBtn->setPosition({minusX, y});
 
-        auto* valLbl = CCLabelBMFont::create(valueText.c_str(), "bigFont.fnt");
-        valLbl->setScale(0.38f);
-        valLbl->setPosition({valueX, y});
-        m_mainLayer->addChild(valLbl);
+        auto* input = TextInput::create(64.f, "0", "bigFont.fnt");
+        input->setScale(0.85f);
+        input->setString(valueText);
+        input->setFilter("-.0123456789");
+        input->setPosition({inputX, y});
+        input->setCallback(onType);
+        m_mainLayer->addChild(input);
 
         auto* plusBtn = CCMenuItemSpriteExtra::create(
-            ButtonSprite::create("+", "bigFont.fnt", "GJ_button_01.png", 0.6f),
+            ButtonSprite::create("+", "bigFont.fnt", "GJ_button_01.png", 0.5f),
             this, plusSel);
+        plusBtn->setScale(0.55f);
         plusBtn->setPosition({plusX, y});
 
         m_buttonMenu->addChild(minusBtn);
         m_buttonMenu->addChild(plusBtn);
 
-        return valLbl;
+        return input;
     }
 
     void refreshPreview() {
         if (!m_preview) return;
-        // Preview always stays at a fixed legible scale; the real "scale" setting
-        // only controls in-game HUD size, not this preview chip.
         m_preview->setOpacity((GLubyte)(S_float((m_key + "-opacity").c_str()) * 255.f));
         m_preview->setColor({(GLubyte)S_int((m_key + "-r").c_str()),
                              (GLubyte)S_int((m_key + "-g").c_str()),
@@ -506,32 +498,55 @@ protected:
         (void)Mod::get()->setSettingValue<bool>(m_key + "-show", !tog->isToggled());
     }
 
+    void setScaleFromText(const std::string& s) {
+        float v = std::clamp(strtof(s.c_str(), nullptr), 0.1f, 2.0f);
+        (void)Mod::get()->setSettingValue<double>(m_key + "-scale", (double)v);
+        refreshPreview();
+    }
+
+    void setOpacFromText(const std::string& s) {
+        float v = std::clamp(strtof(s.c_str(), nullptr), 0.0f, 1.0f);
+        (void)Mod::get()->setSettingValue<double>(m_key + "-opacity", (double)v);
+        refreshPreview();
+    }
+
+    void setPosFromText(const std::string& axis, const std::string& s) {
+        float v = strtof(s.c_str(), nullptr);
+        (void)Mod::get()->setSettingValue<double>(m_key + "-" + axis, (double)v);
+    }
+
+    void setColorFromText(const std::string& ch, const std::string& s) {
+        int v = std::clamp(atoi(s.c_str()), 0, 255);
+        (void)Mod::get()->setSettingValue<int64_t>(m_key + "-" + ch, (int64_t)v);
+        refreshPreview();
+    }
+
     void adjScale(float delta) {
         float v = std::clamp(S_float((m_key + "-scale").c_str()) + delta, 0.1f, 2.0f);
         (void)Mod::get()->setSettingValue<double>(m_key + "-scale", (double)v);
-        if (m_scaleLbl) m_scaleLbl->setString(fmt::format("{:.2f}", v).c_str());
+        if (m_scaleInput) m_scaleInput->setString(fmt::format("{:.2f}", v), false);
         refreshPreview();
     }
 
     void adjOpac(float delta) {
         float v = std::clamp(S_float((m_key + "-opacity").c_str()) + delta, 0.0f, 1.0f);
         (void)Mod::get()->setSettingValue<double>(m_key + "-opacity", (double)v);
-        if (m_opacLbl) m_opacLbl->setString(fmt::format("{:.2f}", v).c_str());
+        if (m_opacInput) m_opacInput->setString(fmt::format("{:.2f}", v), false);
         refreshPreview();
     }
 
     void adjPos(const std::string& axis, float delta) {
         float v = S_float((m_key + "-" + axis).c_str()) + delta;
         (void)Mod::get()->setSettingValue<double>(m_key + "-" + axis, (double)v);
-        auto* lbl = axis == "x" ? m_xLbl : m_yLbl;
-        if (lbl) lbl->setString(fmt::format("{:.0f}", v).c_str());
+        auto* input = axis == "x" ? m_xInput : m_yInput;
+        if (input) input->setString(fmt::format("{:.0f}", v), false);
     }
 
     void adjColor(const std::string& ch, int delta) {
         int v = std::clamp(S_int((m_key + "-" + ch).c_str()) + delta, 0, 255);
         (void)Mod::get()->setSettingValue<int64_t>(m_key + "-" + ch, (int64_t)v);
-        auto* lbl = ch == "r" ? m_rLbl : ch == "g" ? m_gLbl : m_bLbl;
-        if (lbl) lbl->setString(fmt::format("{}", v).c_str());
+        auto* input = ch == "r" ? m_rInput : ch == "g" ? m_gInput : m_bInput;
+        if (input) input->setString(fmt::format("{}", v), false);
         refreshPreview();
     }
 
@@ -562,7 +577,6 @@ public:
     }
 };
 
-// ── Main Labels popup ─────────────────────────────────────────────────────────
 
 class LabelsPopup : public geode::Popup {
 protected:
@@ -596,12 +610,8 @@ protected:
         float listX  = 20.f;
         float listY  = 16.f;
 
-        // Panel background behind the scroll list — strong contrast against brown popup
-        auto* panel = CCScale9Sprite::create("square02b_001.png");
-        panel->setContentSize({listW + 8.f, listH + 8.f});
-        panel->setOpacity(160);
-        panel->setColor({20, 14, 10});
-        panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
+        auto* panel = CCLayerColor::create({18, 12, 8, 180}, listW + 8.f, listH + 8.f);
+        panel->setPosition({listX - 4.f, listY - 4.f});
         m_mainLayer->addChild(panel, -1);
 
         auto* scroll = ScrollLayer::create({listW, listH});
@@ -615,10 +625,8 @@ protected:
 
         for (int i = 0; i < (int)rows.size(); i++) {
             auto& row = rows[i];
-            // Lay rows out top-down, anchored to the top of the content area
             float y = std::max(totalH, listH) - rowH * (float)i - rowH / 2.f;
 
-            // Alternating row stripe for readability
             if (i % 2 == 0) {
                 auto* stripe = CCLayerColor::create({255, 255, 255, 16}, listW, rowH);
                 stripe->setPosition({0.f, y - rowH / 2.f});
@@ -630,14 +638,12 @@ protected:
             rowMenu->setAnchorPoint({0.f, 0.f});
             rowMenu->setPosition({0.f, 0.f});
 
-            // Label name (static text, left aligned)
             auto* nameLbl = CCLabelBMFont::create(row.name.c_str(), "bigFont.fnt");
             nameLbl->setAnchorPoint({0.f, 0.5f});
             nameLbl->setScale(0.42f);
             nameLbl->setPosition({10.f, y});
             content->addChild(nameLbl);
 
-            // Toggle
             auto* tog = CCMenuItemToggler::createWithStandardSprites(
                 this, menu_selector(LabelsPopup::onToggle), 0.55f);
             tog->toggle(S_bool((row.key + "-show").c_str()));
@@ -645,10 +651,10 @@ protected:
             tog->setPosition({listW - 78.f, y});
             rowMenu->addChild(tog);
 
-            // Configure button — opens the sub-menu for this label
-            auto* cfgSpr = ButtonSprite::create("Edit", "bigFont.fnt", "GJ_button_04.png", 0.6f);
+            auto* cfgSpr = ButtonSprite::create("Edit", "bigFont.fnt", "GJ_button_04.png", 0.4f);
             auto* cfgBtn = CCMenuItemSpriteExtra::create(
                 cfgSpr, this, menu_selector(LabelsPopup::onLabelBtn));
+            cfgBtn->setScale(0.7f);
             cfgBtn->setTag(i);
             cfgBtn->setPosition({listW - 32.f, y});
             rowMenu->addChild(cfgBtn);
@@ -703,7 +709,6 @@ public:
     }
 };
 
-// ── PauseLayer hook ───────────────────────────────────────────────────────────
 
 class $modify(MyPauseLayer, PauseLayer) {
     void customSetup() {
