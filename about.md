@@ -8,6 +8,12 @@ A lightweight, customizable label mod for Geometry Dash that displays useful rea
 - CPS Counter
 - Attempts Counter
 - Best Progress
+- Run from
+- Current %
+- Session Time
+- Level ID
+- Level song name
+- Level's object count
 
 # Developers
 
