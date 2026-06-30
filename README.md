@@ -4,10 +4,16 @@ A lightweight, customizable label mod for Geometry Dash that displays useful rea
 
 # Features
 
-- FPS Counter – Monitor your current frame rate.
-- CPS Counter – Track your clicks per second.
-- Attempts Counter – Display the current level attempt count.
-- Best Progress – Show your highest completion percentage.
+- FPS Counter
+- CPS Counter
+- Attempts Counter
+- Best Progress
+- Run from
+- Current %
+- Session Time
+- Level ID
+- Level song name
+- Level's object count
 
 # Developers
 
