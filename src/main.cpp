@@ -354,7 +354,11 @@ protected:
         float panelW = PW - 40.f;
         float panelH = PH - 90.f;
 
-        auto* panel = CCLayerColor::create({18, 12, 8, 180}, panelW, panelH);
+        auto* border = CCLayerColor::create({0, 0, 0, 120}, panelW + 4.f, panelH + 4.f);
+        border->setPosition({cx - panelW / 2.f - 2.f, 14.f});
+        m_mainLayer->addChild(border, -2);
+
+        auto* panel = CCLayerColor::create({26, 18, 12, 200}, panelW, panelH);
         panel->setPosition({cx - panelW / 2.f, 16.f});
         m_mainLayer->addChild(panel, -1);
 
@@ -583,7 +587,7 @@ protected:
     struct Row { std::string key; std::string name; };
 
     static constexpr float PW = 360.f;
-    static constexpr float PH = 340.f;
+    static constexpr float PH = 420.f;
 
     bool init() {
         if (!Popup::init(PW, PH))
@@ -603,70 +607,57 @@ protected:
             {"objects",  "Objects"},
         };
 
-        float rowH   = 36.f;
-        float totalH = rowH * (float)rows.size();
-        float listW  = PW - 40.f;
-        float listH  = PH - 80.f;
-        float listX  = 20.f;
-        float listY  = 16.f;
+        float rowH  = 30.f;
+        float listW = PW - 36.f;
+        float listH = rowH * (float)rows.size();
+        float listX = 18.f;
+        float listY = PH - 56.f - listH;
 
-        auto* panel = CCLayerColor::create({18, 12, 8, 180}, listW + 8.f, listH + 8.f);
-        panel->setPosition({listX - 4.f, listY - 4.f});
+        auto* border = CCLayerColor::create({0, 0, 0, 120}, listW + 4.f, listH + 4.f);
+        border->setPosition({listX - 2.f, listY - 2.f});
+        m_mainLayer->addChild(border, -2);
+
+        auto* panel = CCLayerColor::create({26, 18, 12, 200}, listW, listH);
+        panel->setPosition({listX, listY});
         m_mainLayer->addChild(panel, -1);
-
-        auto* scroll = ScrollLayer::create({listW, listH});
-        scroll->setPosition({listX, listY});
-        m_mainLayer->addChild(scroll);
-
-        auto* content = CCNode::create();
-        content->setAnchorPoint({0.f, 0.f});
-        content->setPosition({0.f, 0.f});
-        content->setContentSize({listW, std::max(totalH, listH)});
 
         for (int i = 0; i < (int)rows.size(); i++) {
             auto& row = rows[i];
-            float y = std::max(totalH, listH) - rowH * (float)i - rowH / 2.f;
+            float rowBottom = listY + listH - rowH * (float)(i + 1);
+            float y = rowBottom + rowH / 2.f;
 
             if (i % 2 == 0) {
-                auto* stripe = CCLayerColor::create({255, 255, 255, 16}, listW, rowH);
-                stripe->setPosition({0.f, y - rowH / 2.f});
-                content->addChild(stripe);
+                auto* stripe = CCLayerColor::create({255, 255, 255, 14}, listW, rowH);
+                stripe->setPosition({listX, rowBottom});
+                m_mainLayer->addChild(stripe);
             }
-
-            auto* rowMenu = CCMenu::create();
-            rowMenu->setContentSize({listW, rowH});
-            rowMenu->setAnchorPoint({0.f, 0.f});
-            rowMenu->setPosition({0.f, 0.f});
+            if (i > 0) {
+                auto* divider = CCLayerColor::create({0, 0, 0, 60}, listW, 1.f);
+                divider->setPosition({listX, rowBottom + rowH});
+                m_mainLayer->addChild(divider);
+            }
 
             auto* nameLbl = CCLabelBMFont::create(row.name.c_str(), "bigFont.fnt");
             nameLbl->setAnchorPoint({0.f, 0.5f});
-            nameLbl->setScale(0.42f);
-            nameLbl->setPosition({10.f, y});
-            content->addChild(nameLbl);
+            nameLbl->setScale(0.4f);
+            nameLbl->setPosition({listX + 10.f, y});
+            m_mainLayer->addChild(nameLbl);
 
             auto* tog = CCMenuItemToggler::createWithStandardSprites(
-                this, menu_selector(LabelsPopup::onToggle), 0.55f);
+                this, menu_selector(LabelsPopup::onToggle), 0.5f);
             tog->toggle(S_bool((row.key + "-show").c_str()));
             tog->setTag(i);
-            tog->setPosition({listW - 78.f, y});
-            rowMenu->addChild(tog);
+            tog->setPosition({listX + listW - 76.f, y});
+            m_buttonMenu->addChild(tog);
 
             auto* cfgSpr = ButtonSprite::create("Edit", "bigFont.fnt", "GJ_button_04.png", 0.4f);
             auto* cfgBtn = CCMenuItemSpriteExtra::create(
                 cfgSpr, this, menu_selector(LabelsPopup::onLabelBtn));
-            cfgBtn->setScale(0.7f);
+            cfgBtn->setScale(0.65f);
             cfgBtn->setTag(i);
-            cfgBtn->setPosition({listW - 32.f, y});
-            rowMenu->addChild(cfgBtn);
-
-            content->addChild(rowMenu);
+            cfgBtn->setPosition({listX + listW - 30.f, y});
+            m_buttonMenu->addChild(cfgBtn);
         }
-
-        scroll->m_contentLayer->setContentSize({listW, std::max(totalH, listH)});
-        scroll->m_contentLayer->setPositionY(
-            std::min(0.f, listH - std::max(totalH, listH)));
-        scroll->m_contentLayer->addChild(content);
-        scroll->moveToTop();
 
         return true;
     }
