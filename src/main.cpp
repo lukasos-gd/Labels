@@ -3,7 +3,6 @@
 #include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/PauseLayer.hpp>
 #include <Geode/ui/GeodeUI.hpp>
-#include <Geode/ui/Popup.hpp>
 #include <chrono>
 
 using namespace geode::prelude;
@@ -329,14 +328,17 @@ struct MyPlayerObject : geode::Modify<MyPlayerObject, PlayerObject> {
 
 // ── Per-label popup ───────────────────────────────────────────────────────────
 
-class LabelSettingPopup : public geode::Popup<std::string, std::string> {
+class LabelSettingPopup : public geode::Popup {
 protected:
     std::string m_key;
     std::string m_labelName;
     CCLabelBMFont* m_scaleLbl = nullptr;
     CCLabelBMFont* m_opacLbl  = nullptr;
 
-    bool setup(std::string key, std::string labelName) override {
+    bool init(std::string const& key, std::string const& labelName) {
+        if (!Popup::init(220.f, 280.f))
+            return false;
+
         m_key       = key;
         m_labelName = labelName;
         setTitle(labelName.c_str());
@@ -526,7 +528,7 @@ protected:
 public:
     static LabelSettingPopup* create(const std::string& key, const std::string& name) {
         auto* r = new LabelSettingPopup();
-        if (r && r->initAnchored(220.f, 280.f, key, name)) {
+        if (r && r->init(key, name)) {
             r->autorelease();
             return r;
         }
@@ -537,14 +539,16 @@ public:
 
 // ── Main Labels popup ─────────────────────────────────────────────────────────
 
-class LabelsPopup : public geode::Popup<> {
+class LabelsPopup : public geode::Popup {
 protected:
     struct Row { std::string key; std::string name; };
 
     static constexpr float PW = 280.f;
     static constexpr float PH = 260.f;
 
-    bool setup() override {
+    bool init() {
+        if (!Popup::init(PW, PH))
+            return false;
         setTitle("Labels");
 
         std::vector<Row> rows = {
@@ -639,7 +643,7 @@ protected:
 public:
     static LabelsPopup* create() {
         auto* r = new LabelsPopup();
-        if (r && r->initAnchored(PW, PH)) { r->autorelease(); return r; }
+        if (r && r->init()) { r->autorelease(); return r; }
         delete r;
         return nullptr;
     }
