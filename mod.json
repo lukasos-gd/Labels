@@ -21,7 +21,7 @@
   },
   "resources": {
     "sprites": [
-      "resources/GE_square01-uhd.png"
+      "resources/GE_square01.png"
     ]
   },
   "links": {
