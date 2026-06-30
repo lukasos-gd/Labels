@@ -8,11 +8,22 @@
   "version": "v1.0.0",
   "developer": "Lukasos",
   "description": "Adds customizable HUD labels showing FPS, CPS, Attempts and Best% while playing.",
+  "tags": [
+    "interface",
+    "utility",
+    "customization"
+  ],
   "dependencies": {
     "geode.node-ids": {
       "version": ">=v1.0.0",
       "importance": "required"
     }
+  },
+  "resources": {
+    "spritesheets": {},
+    "files": [
+      "resources/GE_square01-uhd.png"
+    ]
   },
   "links": {
     "source": "https://github.com/lukasos-gd/Labels",
@@ -109,4 +120,4 @@
     "objects-x":       { "name": "Object Count X",          "type": "float", "default": 5.0,  "min": 0.0, "max": 500.0 },
     "objects-y":       { "name": "Object Count Y (from top)","type": "float","default": 119.0,"min": 0.0, "max": 500.0 }
   }
-}
+    }
