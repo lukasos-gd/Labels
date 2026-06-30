@@ -367,7 +367,7 @@ protected:
             fallback->setPosition({listX, listY});
             m_mainLayer->addChild(fallback, -1);
         } else {
-            auto* panel = CCScale9Sprite::create("labels_bg.png"_spr);
+            auto* panel = CCSprite::create("labels_bg.png"_spr);
             panel->setContentSize({listW, listH});
             panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
             m_mainLayer->addChild(panel, -1);
@@ -666,7 +666,7 @@ protected:
             fallback->setPosition({listX, listY});
             m_mainLayer->addChild(fallback, -1);
         } else {
-            auto* panel = CCScale9Sprite::create("labels_bg.png"_spr);
+            auto* panel = CCSprite::create("labels_bg.png"_spr);
             panel->setContentSize({listW, listH});
             panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
             m_mainLayer->addChild(panel, -1);
