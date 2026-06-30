@@ -357,7 +357,7 @@ protected:
         float listX = 18.f;
         float listY = 16.f;
 
-        auto* panel = CCScale9Sprite::createWithSpriteFrameName("labels_bg.png"_spr);
+        auto* panel = CCScale9Sprite::create("labels_bg.png"_spr);
         if (!panel) {
             log::error("labels_bg.png\"_spr failed to load, using fallback color");
             auto* fallback = CCLayerColor::create({255, 0, 255, 220}, listW, listH);
@@ -652,7 +652,7 @@ protected:
         float listY = 16.f;
         float contentH = rowH * (float)rows.size();
 
-        auto* panel = CCScale9Sprite::createWithSpriteFrameName("labels_bg.png"_spr);
+        auto* panel = CCScale9Sprite::create("labels_bg.png"_spr);
         if (!panel) {
             log::error("labels_bg.png\"_spr failed to load, using fallback color");
             auto* fallback = CCLayerColor::create({255, 0, 255, 220}, listW, listH);
