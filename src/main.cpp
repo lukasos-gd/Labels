@@ -13,8 +13,6 @@ static bool  S_bool (const char* k) { return Mod::get()->getSettingValue<bool>(k
 static float S_float(const char* k) { return (float)Mod::get()->getSettingValue<double>(k); }
 static int   S_int  (const char* k) { return (int)Mod::get()->getSettingValue<int64_t>(k); }
 
-// ── HUDLayer ──────────────────────────────────────────────────────────────────
-
 class HUDLayer : public CCLayer {
 public:
     CCLabelBMFont* fpsLbl  = nullptr;
@@ -37,7 +35,6 @@ public:
     int   maxCPS      = 0;
     float elapsed     = 0.f;
     float clickFlash  = 0.f;
-
     float sessionTime = 0.f;
 
     static constexpr int FPS_WINDOW = 30;
@@ -218,8 +215,6 @@ public:
     }
 };
 
-// ── PlayLayer hook ────────────────────────────────────────────────────────────
-
 class $modify(MyPlayLayer, PlayLayer) {
 public:
     struct Fields {
@@ -304,8 +299,6 @@ public:
     }
 };
 
-// ── CPS hook ──────────────────────────────────────────────────────────────────
-
 struct MyPlayerObject : geode::Modify<MyPlayerObject, PlayerObject> {
     static void onModify(auto& self) {
         (void)self.setHookPriority("PlayerObject::pushButton", 999);
@@ -322,49 +315,48 @@ struct MyPlayerObject : geode::Modify<MyPlayerObject, PlayerObject> {
     }
 };
 
-// ── Per-label popup ───────────────────────────────────────────────────────────
+static void applyPopupBg(CCLayer* mainLayer) {
+    if (!mainLayer) return;
+    auto* children = mainLayer->getChildren();
+    if (!children) return;
+    for (int i = (int)children->count() - 1; i >= 0; i--) {
+        auto* node = static_cast<CCNode*>(children->objectAtIndex(i));
+        if (typeinfo_cast<CCScale9Sprite*>(node)) {
+            node->removeFromParent();
+            break;
+        }
+    }
+    auto* bg = CCSprite::create("labels_bg.png"_spr);
+    if (!bg) return;
+    auto sz  = mainLayer->getContentSize();
+    auto tsz = bg->getContentSize();
+    if (tsz.width > 0 && tsz.height > 0) {
+        bg->setScaleX(sz.width  / tsz.width);
+        bg->setScaleY(sz.height / tsz.height);
+    }
+    bg->setPosition({sz.width / 2.f, sz.height / 2.f});
+    mainLayer->addChild(bg, -10);
+}
 
 class LabelSettingPopup : public geode::Popup<std::string, std::string> {
 protected:
-    std::string m_key;
-    std::string m_labelName;
+    std::string    m_key;
+    std::string    m_labelName;
     CCLabelBMFont* m_scaleLbl = nullptr;
     CCLabelBMFont* m_opacLbl  = nullptr;
+    CCLabelBMFont* m_rLbl     = nullptr;
+    CCLabelBMFont* m_gLbl     = nullptr;
+    CCLabelBMFont* m_bLbl     = nullptr;
 
     bool setup(std::string key, std::string labelName) override {
         m_key       = key;
         m_labelName = labelName;
         setTitle(labelName.c_str());
-
-        // Hide Geode's default popup background, add our own
-        if (m_mainLayer) {
-            auto* children = m_mainLayer->getChildren();
-            if (children) {
-                for (unsigned i = 0; i < children->count(); i++) {
-                    auto* node = static_cast<CCNode*>(children->objectAtIndex(i));
-                    if (typeinfo_cast<CCScale9Sprite*>(node)) {
-                        node->setVisible(false);
-                        break;
-                    }
-                }
-            }
-            auto* bg = CCSprite::create("labels_bg.png"_spr);
-            if (bg) {
-                auto sz = m_mainLayer->getContentSize();
-                auto tsz = bg->getContentSize();
-                if (tsz.width > 0 && tsz.height > 0) {
-                    bg->setScaleX(sz.width  / tsz.width);
-                    bg->setScaleY(sz.height / tsz.height);
-                }
-                bg->setPosition({sz.width / 2.f, sz.height / 2.f});
-                m_mainLayer->addChild(bg, 0);
-            }
-        }
+        applyPopupBg(m_mainLayer);
 
         float cx = m_mainLayer->getContentSize().width  / 2.f;
         float cy = m_mainLayer->getContentSize().height / 2.f;
 
-        // Toggle row
         auto* showLbl = CCLabelBMFont::create("Show", "bigFont.fnt");
         showLbl->setScale(0.45f);
         showLbl->setPosition({cx - 60.f, cy + 50.f});
@@ -376,157 +368,75 @@ protected:
         tog->setPosition({cx + 40.f, cy + 50.f});
         m_buttonMenu->addChild(tog);
 
-        // Scale row
-        auto* scaleLbl = CCLabelBMFont::create("Scale", "bigFont.fnt");
-        scaleLbl->setScale(0.45f);
-        scaleLbl->setPosition({cx - 60.f, cy + 20.f});
-        m_mainLayer->addChild(scaleLbl);
+        auto makeStepper = [&](const char* label, float y, CCLabelBMFont*& valLbl,
+                                SEL_MenuHandler minSel, SEL_MenuHandler plusSel,
+                                const std::string& valStr) {
+            auto* lbl = CCLabelBMFont::create(label, "bigFont.fnt");
+            lbl->setScale(0.45f);
+            lbl->setPosition({cx - 60.f, y});
+            m_mainLayer->addChild(lbl);
 
-        auto* minusSc = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("-", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onScaleMinus));
-        minusSc->setPosition({cx + 10.f, cy + 20.f});
+            auto* minBtn = CCMenuItemSpriteExtra::create(
+                CCLabelBMFont::create("-", "bigFont.fnt"), this, minSel);
+            minBtn->setPosition({cx + 10.f, y});
+            m_buttonMenu->addChild(minBtn);
 
-        m_scaleLbl = CCLabelBMFont::create(
-            fmt::format("{:.2f}", S_float((m_key + "-scale").c_str())).c_str(), "bigFont.fnt");
-        m_scaleLbl->setScale(0.4f);
-        m_scaleLbl->setPosition({cx + 40.f, cy + 20.f});
-        m_mainLayer->addChild(m_scaleLbl);
+            valLbl = CCLabelBMFont::create(valStr.c_str(), "bigFont.fnt");
+            valLbl->setScale(0.4f);
+            valLbl->setPosition({cx + 40.f, y});
+            m_mainLayer->addChild(valLbl);
 
-        auto* plusSc = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("+", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onScalePlus));
-        plusSc->setPosition({cx + 70.f, cy + 20.f});
+            auto* plusBtn = CCMenuItemSpriteExtra::create(
+                CCLabelBMFont::create("+", "bigFont.fnt"), this, plusSel);
+            plusBtn->setPosition({cx + 70.f, y});
+            m_buttonMenu->addChild(plusBtn);
+        };
 
-        m_buttonMenu->addChild(minusSc);
-        m_buttonMenu->addChild(plusSc);
+        makeStepper("Scale",   cy + 20.f, m_scaleLbl,
+            menu_selector(LabelSettingPopup::onScaleMinus),
+            menu_selector(LabelSettingPopup::onScalePlus),
+            fmt::format("{:.2f}", S_float((m_key + "-scale").c_str())));
 
-        // Opacity row
-        auto* opacLblTxt = CCLabelBMFont::create("Opacity", "bigFont.fnt");
-        opacLblTxt->setScale(0.45f);
-        opacLblTxt->setPosition({cx - 60.f, cy - 10.f});
-        m_mainLayer->addChild(opacLblTxt);
+        makeStepper("Opacity", cy - 10.f, m_opacLbl,
+            menu_selector(LabelSettingPopup::onOpacMinus),
+            menu_selector(LabelSettingPopup::onOpacPlus),
+            fmt::format("{:.2f}", S_float((m_key + "-opacity").c_str())));
 
-        auto* minusOp = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("-", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onOpacMinus));
-        minusOp->setPosition({cx + 10.f, cy - 10.f});
+        makeStepper("R",       cy - 40.f, m_rLbl,
+            menu_selector(LabelSettingPopup::onRMinus),
+            menu_selector(LabelSettingPopup::onRPlus),
+            fmt::format("{}", S_int((m_key + "-r").c_str())));
 
-        m_opacLbl = CCLabelBMFont::create(
-            fmt::format("{:.2f}", S_float((m_key + "-opacity").c_str())).c_str(), "bigFont.fnt");
-        m_opacLbl->setScale(0.4f);
-        m_opacLbl->setPosition({cx + 40.f, cy - 10.f});
-        m_mainLayer->addChild(m_opacLbl);
+        makeStepper("G",       cy - 60.f, m_gLbl,
+            menu_selector(LabelSettingPopup::onGMinus),
+            menu_selector(LabelSettingPopup::onGPlus),
+            fmt::format("{}", S_int((m_key + "-g").c_str())));
 
-        auto* plusOp = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("+", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onOpacPlus));
-        plusOp->setPosition({cx + 70.f, cy - 10.f});
-
-        m_buttonMenu->addChild(minusOp);
-        m_buttonMenu->addChild(plusOp);
-
-        // Color row
-        auto* colorTxt = CCLabelBMFont::create("Color  R", "bigFont.fnt");
-        colorTxt->setScale(0.45f);
-        colorTxt->setPosition({cx - 60.f, cy - 40.f});
-        m_mainLayer->addChild(colorTxt);
-
-        auto* rMinusBtn = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("-", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onRMinus));
-        rMinusBtn->setPosition({cx + 10.f, cy - 40.f});
-
-        m_rLbl = CCLabelBMFont::create(
-            fmt::format("{}", S_int((m_key + "-r").c_str())).c_str(), "bigFont.fnt");
-        m_rLbl->setScale(0.4f);
-        m_rLbl->setPosition({cx + 40.f, cy - 40.f});
-        m_mainLayer->addChild(m_rLbl);
-
-        auto* rPlusBtn = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("+", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onRPlus));
-        rPlusBtn->setPosition({cx + 70.f, cy - 40.f});
-
-        m_buttonMenu->addChild(rMinusBtn);
-        m_buttonMenu->addChild(rPlusBtn);
-
-        // G row
-        auto* gTxt = CCLabelBMFont::create("G", "bigFont.fnt");
-        gTxt->setScale(0.45f);
-        gTxt->setPosition({cx - 60.f, cy - 60.f});
-        m_mainLayer->addChild(gTxt);
-
-        auto* gMinusBtn = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("-", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onGMinus));
-        gMinusBtn->setPosition({cx + 10.f, cy - 60.f});
-
-        m_gLbl = CCLabelBMFont::create(
-            fmt::format("{}", S_int((m_key + "-g").c_str())).c_str(), "bigFont.fnt");
-        m_gLbl->setScale(0.4f);
-        m_gLbl->setPosition({cx + 40.f, cy - 60.f});
-        m_mainLayer->addChild(m_gLbl);
-
-        auto* gPlusBtn = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("+", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onGPlus));
-        gPlusBtn->setPosition({cx + 70.f, cy - 60.f});
-
-        m_buttonMenu->addChild(gMinusBtn);
-        m_buttonMenu->addChild(gPlusBtn);
-
-        // B row
-        auto* bTxt = CCLabelBMFont::create("B", "bigFont.fnt");
-        bTxt->setScale(0.45f);
-        bTxt->setPosition({cx - 60.f, cy - 80.f});
-        m_mainLayer->addChild(bTxt);
-
-        auto* bMinusBtn = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("-", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onBMinus));
-        bMinusBtn->setPosition({cx + 10.f, cy - 80.f});
-
-        m_bLbl = CCLabelBMFont::create(
-            fmt::format("{}", S_int((m_key + "-b").c_str())).c_str(), "bigFont.fnt");
-        m_bLbl->setScale(0.4f);
-        m_bLbl->setPosition({cx + 40.f, cy - 80.f});
-        m_mainLayer->addChild(m_bLbl);
-
-        auto* bPlusBtn = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("+", "bigFont.fnt"),
-            this, menu_selector(LabelSettingPopup::onBPlus));
-        bPlusBtn->setPosition({cx + 70.f, cy - 80.f});
-
-        m_buttonMenu->addChild(bMinusBtn);
-        m_buttonMenu->addChild(bPlusBtn);
+        makeStepper("B",       cy - 80.f, m_bLbl,
+            menu_selector(LabelSettingPopup::onBMinus),
+            menu_selector(LabelSettingPopup::onBPlus),
+            fmt::format("{}", S_int((m_key + "-b").c_str())));
 
         return true;
     }
-
-    CCLabelBMFont* m_rLbl = nullptr;
-    CCLabelBMFont* m_gLbl = nullptr;
-    CCLabelBMFont* m_bLbl = nullptr;
 
     void onToggle(CCObject* sender) {
         auto* tog = static_cast<CCMenuItemToggler*>(sender);
         (void)Mod::get()->setSettingValue<bool>(m_key + "-show", !tog->isToggled());
     }
 
-    void adjScale(float delta) {
-        float v = std::clamp(S_float((m_key + "-scale").c_str()) + delta, 0.1f, 2.0f);
+    void adjScale(float d) {
+        float v = std::clamp(S_float((m_key + "-scale").c_str()) + d, 0.1f, 2.f);
         (void)Mod::get()->setSettingValue<double>(m_key + "-scale", (double)v);
         if (m_scaleLbl) m_scaleLbl->setString(fmt::format("{:.2f}", v).c_str());
     }
-
-    void adjOpac(float delta) {
-        float v = std::clamp(S_float((m_key + "-opacity").c_str()) + delta, 0.0f, 1.0f);
+    void adjOpac(float d) {
+        float v = std::clamp(S_float((m_key + "-opacity").c_str()) + d, 0.f, 1.f);
         (void)Mod::get()->setSettingValue<double>(m_key + "-opacity", (double)v);
         if (m_opacLbl) m_opacLbl->setString(fmt::format("{:.2f}", v).c_str());
     }
-
-    void adjColor(const std::string& ch, int delta) {
-        int v = std::clamp(S_int((m_key + "-" + ch).c_str()) + delta, 0, 255);
+    void adjColor(const std::string& ch, int d) {
+        int v = std::clamp(S_int((m_key + "-" + ch).c_str()) + d, 0, 255);
         (void)Mod::get()->setSettingValue<int64_t>(m_key + "-" + ch, (int64_t)v);
         auto* lbl = ch == "r" ? m_rLbl : ch == "g" ? m_gLbl : m_bLbl;
         if (lbl) lbl->setString(fmt::format("{}", v).c_str());
@@ -555,8 +465,6 @@ public:
     }
 };
 
-// ── Main Labels popup ─────────────────────────────────────────────────────────
-
 class LabelsPopup : public geode::Popup<> {
 protected:
     struct Row { std::string key; std::string name; };
@@ -566,31 +474,7 @@ protected:
 
     bool setup() override {
         setTitle("Labels");
-
-        // Hide Geode's default popup background, add our own
-        if (m_mainLayer) {
-            auto* children = m_mainLayer->getChildren();
-            if (children) {
-                for (unsigned i = 0; i < children->count(); i++) {
-                    auto* node = static_cast<CCNode*>(children->objectAtIndex(i));
-                    if (typeinfo_cast<CCScale9Sprite*>(node)) {
-                        node->setVisible(false);
-                        break;
-                    }
-                }
-            }
-            auto* bg = CCSprite::create("labels_bg.png"_spr);
-            if (bg) {
-                auto sz = m_mainLayer->getContentSize();
-                auto tsz = bg->getContentSize();
-                if (tsz.width > 0 && tsz.height > 0) {
-                    bg->setScaleX(sz.width  / tsz.width);
-                    bg->setScaleY(sz.height / tsz.height);
-                }
-                bg->setPosition({sz.width / 2.f, sz.height / 2.f});
-                m_mainLayer->addChild(bg, 0);
-            }
-        }
+        applyPopupBg(m_mainLayer);
 
         std::vector<Row> rows = {
             {"fps",      "FPS"},
@@ -621,14 +505,12 @@ protected:
             auto& row = rows[i];
             float y = totalH - rowH * (float)i - rowH / 2.f;
 
-            // Label name button — opens per-label popup
             auto* nameLbl = CCLabelBMFont::create(row.name.c_str(), "bigFont.fnt");
             nameLbl->setScale(0.38f);
             auto* nameBtn = CCMenuItemSpriteExtra::create(
                 nameLbl, this, menu_selector(LabelsPopup::onLabelBtn));
             nameBtn->setTag(i);
 
-            // Toggle
             auto* tog = CCMenuItemToggler::createWithStandardSprites(
                 this, menu_selector(LabelsPopup::onToggle), 0.6f);
             tog->toggle(S_bool((row.key + "-show").c_str()));
@@ -636,10 +518,8 @@ protected:
 
             auto* rowMenu = CCMenu::create();
             rowMenu->setPosition({0.f, 0.f});
-
             nameBtn->setPosition({listW * 0.3f, y});
             tog->setPosition({listW - 16.f, y});
-
             rowMenu->addChild(nameBtn);
             rowMenu->addChild(tog);
             content->addChild(rowMenu);
@@ -690,8 +570,6 @@ public:
     }
 };
 
-// ── PauseLayer hook ───────────────────────────────────────────────────────────
-
 class $modify(MyPauseLayer, PauseLayer) {
     void customSetup() {
         PauseLayer::customSetup();
@@ -731,5 +609,5 @@ class $modify(MyPauseLayer, PauseLayer) {
 };
 
 $on_mod(Loaded) {
-    log::info("Labels v1.0.0 loaded");
+    log::info("Labels v1.0.1 loaded");
 }
