@@ -124,18 +124,13 @@ public:
                                (GLubyte)S_int((e.key + "-b").c_str())});
         }
 
-        float startX = 5.f;
-        float startY = -1.f;
-        float curY   = 0.f;
+        float startX = S_float((entries.front().key + "-x").c_str());
+        float startY = S_float((entries.front().key + "-y").c_str());
+        float curY   = win.height - startY;
 
         for (auto& e : entries) {
             if (!e.lbl || !e.lbl->isVisible()) continue;
             float lineH = 26.f * e.lbl->getScale();
-            if (startY < 0.f) {
-                startX = S_float((e.key + "-x").c_str());
-                startY = S_float((e.key + "-y").c_str());
-                curY   = win.height - startY;
-            }
             e.lbl->setPosition({startX, curY});
             curY -= lineH + 2.f;
         }
@@ -352,25 +347,25 @@ protected:
         m_labelName = labelName;
         setTitle(labelName.c_str());
 
+        if (auto* bg = m_mainLayer->getChildByID("background")) bg->setVisible(false);
+
         float listW = PW - 36.f;
         float listH = PH - 56.f - 16.f;
         float listX = 18.f;
         float listY = 16.f;
 
-        auto* testSpr = CCSprite::create("labels_bg.png"_spr);
-        bool spriteOk = testSpr && testSpr->getTexture() != nullptr;
-        log::info("labels_bg.png test sprite: ptr={}, texture={}",
-            (void*)testSpr, spriteOk ? "valid" : "MISSING");
-
-        if (!spriteOk) {
-            auto* fallback = CCLayerColor::create({255, 0, 255, 220}, listW, listH);
+        auto* bgSpr = CCSprite::create("labels_bg.png"_spr);
+        if (!bgSpr || !bgSpr->getTexture()) {
+            log::error("labels_bg.png\"_spr failed to load");
+            auto* fallback = CCLayerColor::create({40, 40, 50, 255}, listW, listH);
             fallback->setPosition({listX, listY});
-            m_mainLayer->addChild(fallback, -1);
+            m_mainLayer->addChild(fallback, -2);
         } else {
-            auto* panel = CCSprite::create("labels_bg.png"_spr);
-            panel->setContentSize({listW, listH});
-            panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
-            m_mainLayer->addChild(panel, -1);
+            CCSize texSize = bgSpr->getContentSize();
+            bgSpr->setScaleX(listW / texSize.width);
+            bgSpr->setScaleY(listH / texSize.height);
+            bgSpr->setPosition({listX + listW / 2.f, listY + listH / 2.f});
+            m_mainLayer->addChild(bgSpr, -2);
         }
 
         m_scroll = ScrollLayer::create({listW, listH});
@@ -656,20 +651,20 @@ protected:
         float listY = 16.f;
         float contentH = rowH * (float)rows.size();
 
-        auto* testSpr2 = CCSprite::create("labels_bg.png"_spr);
-        bool spriteOk2 = testSpr2 && testSpr2->getTexture() != nullptr;
-        log::info("labels_bg.png test sprite (popup2): ptr={}, texture={}",
-            (void*)testSpr2, spriteOk2 ? "valid" : "MISSING");
+        if (auto* bg = m_mainLayer->getChildByID("background")) bg->setVisible(false);
 
-        if (!spriteOk2) {
-            auto* fallback = CCLayerColor::create({255, 0, 255, 220}, listW, listH);
+        auto* bgSpr = CCSprite::create("labels_bg.png"_spr);
+        if (!bgSpr || !bgSpr->getTexture()) {
+            log::error("labels_bg.png\"_spr failed to load");
+            auto* fallback = CCLayerColor::create({40, 40, 50, 255}, listW, listH);
             fallback->setPosition({listX, listY});
-            m_mainLayer->addChild(fallback, -1);
+            m_mainLayer->addChild(fallback, -2);
         } else {
-            auto* panel = CCSprite::create("labels_bg.png"_spr);
-            panel->setContentSize({listW, listH});
-            panel->setPosition({listX + listW / 2.f, listY + listH / 2.f});
-            m_mainLayer->addChild(panel, -1);
+            CCSize texSize = bgSpr->getContentSize();
+            bgSpr->setScaleX(listW / texSize.width);
+            bgSpr->setScaleY(listH / texSize.height);
+            bgSpr->setPosition({listX + listW / 2.f, listY + listH / 2.f});
+            m_mainLayer->addChild(bgSpr, -2);
         }
 
         auto* scroll = ScrollLayer::create({listW, listH});
@@ -809,5 +804,5 @@ class $modify(MyPauseLayer, PauseLayer) {
 };
 
 $on_mod(Loaded) {
-    log::info("Labels v1.0.0 loaded");
+    log::info("Labels v1.0.1 loaded");
 }
