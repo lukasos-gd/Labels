@@ -329,9 +329,7 @@ protected:
     CCLabelBMFont* m_bLbl     = nullptr;
 
     bool init(const std::string& key, const std::string& labelName) {
-        auto win = CCDirector::sharedDirector()->getWinSize();
         float pw = 260.f, ph = 300.f;
-
         auto win = CCDirector::sharedDirector()->getWinSize();
         if (!CCLayerColor::initWithColor({0, 0, 0, 180}, win.width, win.height)) return false;
         m_key = key;
@@ -487,8 +485,7 @@ protected:
 
     struct Row { std::string key; std::string name; };
 
-    bool init() {
-        auto win = CCDirector::sharedDirector()->getWinSize();
+    bool init() override {
         auto win = CCDirector::sharedDirector()->getWinSize();
         if (!CCLayerColor::initWithColor({0, 0, 0, 180}, win.width, win.height)) return false;
 
