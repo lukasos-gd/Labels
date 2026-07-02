@@ -341,7 +341,7 @@ protected:
     CCLabelBMFont* m_bLbl       = nullptr;
 
     bool init(const std::string& key, const std::string& labelName) {
-        if (!FLAlertLayer::init(nullptr, labelName.c_str(), "Close", nullptr, 220.f, 280.f))
+        if (!FLAlertLayer::init(nullptr, labelName.c_str(), "", "Close", nullptr, 220.f, false, 280.f, 1.f))
             return false;
         m_key = key;
 
@@ -476,7 +476,7 @@ protected:
     struct Row { std::string key; std::string name; };
 
     bool init() {
-        if (!FLAlertLayer::init(nullptr, "Labels", "Close", nullptr, PW, PH))
+        if (!FLAlertLayer::init(nullptr, "Labels", "", "Close", nullptr, PW, false, PH, 1.f))
             return false;
 
         m_mainLayer = static_cast<CCLayer*>(getChildByType<CCLayer>(0));
