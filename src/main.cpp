@@ -307,7 +307,8 @@ struct MyPlayerObject : geode::Modify<MyPlayerObject, PlayerObject> {
 };
 
 static CCSprite* createBgSprite(float w, float h) {
-    auto* bg = CCSprite::create("labels_bg.png"_spr);
+    auto* bg = CCSprite::create("labels_bg-uhd.png"_spr);
+    if (!bg) bg = CCSprite::create("labels_bg.png"_spr);
     if (!bg) return nullptr;
     auto sz = bg->getContentSize();
     if (sz.width > 0 && sz.height > 0) {
@@ -331,13 +332,9 @@ protected:
         auto win = CCDirector::sharedDirector()->getWinSize();
         float pw = 260.f, ph = 300.f;
 
-        if (!CCLayerColor::initWithColor({0, 0, 0, 180})) return false;
+        auto win = CCDirector::sharedDirector()->getWinSize();
+        if (!CCLayerColor::initWithColor({0, 0, 0, 180}, win.width, win.height)) return false;
         m_key = key;
-
-        auto* panel = CCScale9Sprite::create("GJ_square01.png");
-        panel->setContentSize({pw, ph});
-        panel->setPosition({win.width / 2.f, win.height / 2.f});
-        addChild(panel, 1);
 
         auto* bgSpr = createBgSprite(pw, ph);
         if (bgSpr) {
@@ -476,9 +473,8 @@ public:
         return nullptr;
     }
 
-    void show() {
-        auto* scene = CCDirector::sharedDirector()->getRunningScene();
-        scene->addChild(this, 1000);
+    void show(CCNode* parent) {
+        parent->addChild(this, 9999);
     }
 };
 
@@ -486,19 +482,15 @@ class LabelsPopup : public CCLayerColor {
 protected:
     CCMenu* m_menu = nullptr;
 
-    static constexpr float PW = 280.f;
-    static constexpr float PH = 260.f;
+    static constexpr float PW = 320.f;
+    static constexpr float PH = 280.f;
 
     struct Row { std::string key; std::string name; };
 
     bool init() {
         auto win = CCDirector::sharedDirector()->getWinSize();
-        if (!CCLayerColor::initWithColor({0, 0, 0, 180})) return false;
-
-        auto* panel = CCScale9Sprite::create("GJ_square01.png");
-        panel->setContentSize({PW, PH});
-        panel->setPosition({win.width / 2.f, win.height / 2.f});
-        addChild(panel, 1);
+        auto win = CCDirector::sharedDirector()->getWinSize();
+        if (!CCLayerColor::initWithColor({0, 0, 0, 180}, win.width, win.height)) return false;
 
         auto* bgSpr = createBgSprite(PW, PH);
         if (bgSpr) {
@@ -567,12 +559,20 @@ protected:
             tog->toggle(S_bool((row.key + "-show").c_str()));
             tog->setTag(i);
 
+            auto* editLbl = CCLabelBMFont::create("Edit", "bigFont.fnt");
+            editLbl->setScale(0.35f);
+            auto* editBtn = CCMenuItemSpriteExtra::create(
+                editLbl, this, menu_selector(LabelsPopup::onLabelBtn));
+            editBtn->setTag(i);
+
             auto* rowMenu = CCMenu::create();
             rowMenu->setPosition({0.f, 0.f});
-            nameBtn->setPosition({listW * 0.3f, y});
-            tog->setPosition({listW - 16.f, y});
+            nameBtn->setPosition({listW * 0.25f, y});
+            tog->setPosition({listW - 52.f, y});
+            editBtn->setPosition({listW - 22.f, y});
             rowMenu->addChild(nameBtn);
             rowMenu->addChild(tog);
+            rowMenu->addChild(editBtn);
             content->addChild(rowMenu);
         }
 
@@ -615,7 +615,7 @@ protected:
         int idx = static_cast<CCNode*>(sender)->getTag();
         if (idx < 0 || idx >= (int)getKeys().size()) return;
         auto* popup = LabelSettingPopup::create(getKeys()[idx], getNames()[idx]);
-        if (popup) popup->show();
+        if (popup) popup->show(getParent());
     }
 
 public:
@@ -626,9 +626,8 @@ public:
         return nullptr;
     }
 
-    void show() {
-        auto* scene = CCDirector::sharedDirector()->getRunningScene();
-        scene->addChild(this, 1000);
+    void show(CCNode* parent) {
+        parent->addChild(this, 9999);
     }
 };
 
@@ -666,7 +665,7 @@ class $modify(MyPauseLayer, PauseLayer) {
 
     void onLabels(CCObject*) {
         auto* popup = LabelsPopup::create();
-        if (popup) popup->show();
+        if (popup) popup->show(this);
     }
 };
 
