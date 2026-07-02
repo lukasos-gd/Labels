@@ -324,12 +324,14 @@ protected:
     CCMenu*        m_menu     = nullptr;
     CCLabelBMFont* m_scaleLbl = nullptr;
     CCLabelBMFont* m_opacLbl  = nullptr;
+    CCLabelBMFont* m_xLbl     = nullptr;
+    CCLabelBMFont* m_yLbl     = nullptr;
     CCLabelBMFont* m_rLbl     = nullptr;
     CCLabelBMFont* m_gLbl     = nullptr;
     CCLabelBMFont* m_bLbl     = nullptr;
 
     bool init(const std::string& key, const std::string& labelName) {
-        float pw = 260.f, ph = 300.f;
+        float pw = 280.f, ph = 360.f;
         auto win = CCDirector::sharedDirector()->getWinSize();
         if (!CCLayerColor::initWithColor({0, 0, 0, 180}, win.width, win.height)) return false;
         m_key = key;
@@ -398,6 +400,14 @@ protected:
             menu_selector(LabelSettingPopup::onOpacMinus),
             menu_selector(LabelSettingPopup::onOpacPlus),
             fmt::format("{:.2f}", S_float((m_key + "-opacity").c_str())));
+        makeRow("Pos X",   m_xLbl,
+            menu_selector(LabelSettingPopup::onXMinus),
+            menu_selector(LabelSettingPopup::onXPlus),
+            fmt::format("{:.0f}", S_float((m_key + "-x").c_str())));
+        makeRow("Pos Y",   m_yLbl,
+            menu_selector(LabelSettingPopup::onYMinus),
+            menu_selector(LabelSettingPopup::onYPlus),
+            fmt::format("{:.0f}", S_float((m_key + "-y").c_str())));
         makeRow("R", m_rLbl,
             menu_selector(LabelSettingPopup::onRMinus),
             menu_selector(LabelSettingPopup::onRPlus),
@@ -424,6 +434,8 @@ protected:
 
     void keyBackClicked() override { onClose(nullptr); }
     void onClose(CCObject*) {
+        if (auto* p = getParent())
+            p->setVisible(true);
         removeFromParentAndCleanup(true);
     }
 
@@ -442,6 +454,12 @@ protected:
         (void)Mod::get()->setSettingValue<double>(m_key + "-opacity", (double)v);
         if (m_opacLbl) m_opacLbl->setString(fmt::format("{:.2f}", v).c_str());
     }
+    void adjPos(const std::string& axis, float d) {
+        float v = S_float((m_key + "-" + axis).c_str()) + d;
+        (void)Mod::get()->setSettingValue<double>(m_key + "-" + axis, (double)v);
+        auto* lbl = axis == "x" ? m_xLbl : m_yLbl;
+        if (lbl) lbl->setString(fmt::format("{:.0f}", v).c_str());
+    }
     void adjColor(const std::string& ch, int d) {
         int v = std::clamp(S_int((m_key + "-" + ch).c_str()) + d, 0, 255);
         (void)Mod::get()->setSettingValue<int64_t>(m_key + "-" + ch, (int64_t)v);
@@ -453,6 +471,10 @@ protected:
     void onScalePlus (CCObject*) { adjScale( 0.05f); }
     void onOpacMinus (CCObject*) { adjOpac (-0.05f); }
     void onOpacPlus  (CCObject*) { adjOpac ( 0.05f); }
+    void onXMinus(CCObject*) { adjPos("x", -5.f); }
+    void onXPlus (CCObject*) { adjPos("x",  5.f); }
+    void onYMinus(CCObject*) { adjPos("y", -5.f); }
+    void onYPlus (CCObject*) { adjPos("y",  5.f); }
     void onRMinus(CCObject*) { adjColor("r", -5); }
     void onRPlus (CCObject*) { adjColor("r",  5); }
     void onGMinus(CCObject*) { adjColor("g", -5); }
@@ -612,7 +634,9 @@ protected:
         int idx = static_cast<CCNode*>(sender)->getTag();
         if (idx < 0 || idx >= (int)getKeys().size()) return;
         auto* popup = LabelSettingPopup::create(getKeys()[idx], getNames()[idx]);
-        if (popup) popup->show(getParent());
+        if (!popup) return;
+        setVisible(false);
+        popup->show(getParent());
     }
 
 public:
