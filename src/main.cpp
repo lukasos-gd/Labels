@@ -306,118 +306,130 @@ struct MyPlayerObject : geode::Modify<MyPlayerObject, PlayerObject> {
     }
 };
 
-static void applyPopupBg(CCLayer* mainLayer) {
-    if (!mainLayer) return;
-    auto* children = mainLayer->getChildren();
-    if (!children) return;
-    for (int i = (int)children->count() - 1; i >= 0; i--) {
-        auto* node = static_cast<CCNode*>(children->objectAtIndex(i));
-        if (typeinfo_cast<CCScale9Sprite*>(node)) {
-            node->removeFromParent();
-            break;
-        }
-    }
+static CCSprite* createBgSprite(float w, float h) {
     auto* bg = CCSprite::create("labels_bg.png"_spr);
-    if (!bg) return;
-    auto sz  = mainLayer->getContentSize();
-    auto tsz = bg->getContentSize();
-    if (tsz.width > 0 && tsz.height > 0) {
-        bg->setScaleX(sz.width  / tsz.width);
-        bg->setScaleY(sz.height / tsz.height);
+    if (!bg) return nullptr;
+    auto sz = bg->getContentSize();
+    if (sz.width > 0 && sz.height > 0) {
+        bg->setScaleX(w / sz.width);
+        bg->setScaleY(h / sz.height);
     }
-    bg->setPosition({sz.width / 2.f, sz.height / 2.f});
-    mainLayer->addChild(bg, -10);
+    return bg;
 }
 
-class LabelSettingPopup : public FLAlertLayer {
+class LabelSettingPopup : public CCLayerColor {
 protected:
     std::string    m_key;
-    CCLayer*       m_mainLayer  = nullptr;
-    CCMenu*        m_buttonMenu = nullptr;
-    CCLabelBMFont* m_scaleLbl   = nullptr;
-    CCLabelBMFont* m_opacLbl    = nullptr;
-    CCLabelBMFont* m_rLbl       = nullptr;
-    CCLabelBMFont* m_gLbl       = nullptr;
-    CCLabelBMFont* m_bLbl       = nullptr;
+    CCMenu*        m_menu     = nullptr;
+    CCLabelBMFont* m_scaleLbl = nullptr;
+    CCLabelBMFont* m_opacLbl  = nullptr;
+    CCLabelBMFont* m_rLbl     = nullptr;
+    CCLabelBMFont* m_gLbl     = nullptr;
+    CCLabelBMFont* m_bLbl     = nullptr;
 
     bool init(const std::string& key, const std::string& labelName) {
-        if (!FLAlertLayer::init(nullptr, labelName.c_str(), "", "Close", nullptr, 220.f, false, 280.f, 1.f))
-            return false;
+        auto win = CCDirector::sharedDirector()->getWinSize();
+        float pw = 260.f, ph = 300.f;
+
+        if (!CCLayerColor::initWithColor({0, 0, 0, 180})) return false;
         m_key = key;
 
-        m_mainLayer = static_cast<CCLayer*>(getChildByType<CCLayer>(0));
-        if (!m_mainLayer) return false;
+        auto* panel = CCScale9Sprite::create("GJ_square01.png");
+        panel->setContentSize({pw, ph});
+        panel->setPosition({win.width / 2.f, win.height / 2.f});
+        addChild(panel, 1);
 
-        m_buttonMenu = CCMenu::create();
-        m_buttonMenu->setPosition({0.f, 0.f});
-        m_mainLayer->addChild(m_buttonMenu, 10);
+        auto* bgSpr = createBgSprite(pw, ph);
+        if (bgSpr) {
+            bgSpr->setPosition({win.width / 2.f, win.height / 2.f});
+            addChild(bgSpr, 2);
+        }
 
-        applyPopupBg(m_mainLayer);
+        float cx = win.width / 2.f;
+        float cy = win.height / 2.f;
 
-        float cx = m_mainLayer->getContentSize().width  / 2.f;
-        float cy = m_mainLayer->getContentSize().height / 2.f;
+        auto* titleLbl = CCLabelBMFont::create(labelName.c_str(), "goldFont.fnt");
+        titleLbl->setScale(0.7f);
+        titleLbl->setPosition({cx, cy + ph / 2.f - 20.f});
+        addChild(titleLbl, 3);
+
+        m_menu = CCMenu::create();
+        m_menu->setPosition({0.f, 0.f});
+        addChild(m_menu, 3);
 
         auto* showLbl = CCLabelBMFont::create("Show", "bigFont.fnt");
         showLbl->setScale(0.45f);
-        showLbl->setPosition({cx - 60.f, cy + 50.f});
-        m_mainLayer->addChild(showLbl, 5);
+        showLbl->setPosition({cx - 60.f, cy + 60.f});
+        addChild(showLbl, 3);
 
         auto* tog = CCMenuItemToggler::createWithStandardSprites(
             this, menu_selector(LabelSettingPopup::onToggle), 0.7f);
         tog->toggle(S_bool((m_key + "-show").c_str()));
-        tog->setPosition({cx + 40.f, cy + 50.f});
-        m_buttonMenu->addChild(tog);
+        tog->setPosition({cx + 40.f, cy + 60.f});
+        m_menu->addChild(tog);
 
-        auto makeStepper = [&](const char* label, float y, CCLabelBMFont*& valLbl,
-                                SEL_MenuHandler minSel, SEL_MenuHandler plusSel,
-                                const std::string& valStr) {
+        float y = cy + 30.f;
+        auto makeRow = [&](const char* label, CCLabelBMFont*& valLbl,
+                            SEL_MenuHandler minSel, SEL_MenuHandler plusSel,
+                            const std::string& val) {
             auto* lbl = CCLabelBMFont::create(label, "bigFont.fnt");
-            lbl->setScale(0.45f);
-            lbl->setPosition({cx - 60.f, y});
-            m_mainLayer->addChild(lbl, 5);
+            lbl->setScale(0.42f);
+            lbl->setPosition({cx - 75.f, y});
+            addChild(lbl, 3);
 
             auto* minBtn = CCMenuItemSpriteExtra::create(
                 CCLabelBMFont::create("-", "bigFont.fnt"), this, minSel);
             minBtn->setPosition({cx + 10.f, y});
-            m_buttonMenu->addChild(minBtn);
+            m_menu->addChild(minBtn);
 
-            valLbl = CCLabelBMFont::create(valStr.c_str(), "bigFont.fnt");
+            valLbl = CCLabelBMFont::create(val.c_str(), "bigFont.fnt");
             valLbl->setScale(0.4f);
             valLbl->setPosition({cx + 40.f, y});
-            m_mainLayer->addChild(valLbl, 5);
+            addChild(valLbl, 3);
 
             auto* plusBtn = CCMenuItemSpriteExtra::create(
                 CCLabelBMFont::create("+", "bigFont.fnt"), this, plusSel);
             plusBtn->setPosition({cx + 70.f, y});
-            m_buttonMenu->addChild(plusBtn);
+            m_menu->addChild(plusBtn);
+
+            y -= 28.f;
         };
 
-        makeStepper("Scale",   cy + 20.f, m_scaleLbl,
+        makeRow("Scale",   m_scaleLbl,
             menu_selector(LabelSettingPopup::onScaleMinus),
             menu_selector(LabelSettingPopup::onScalePlus),
             fmt::format("{:.2f}", S_float((m_key + "-scale").c_str())));
-
-        makeStepper("Opacity", cy - 10.f, m_opacLbl,
+        makeRow("Opacity", m_opacLbl,
             menu_selector(LabelSettingPopup::onOpacMinus),
             menu_selector(LabelSettingPopup::onOpacPlus),
             fmt::format("{:.2f}", S_float((m_key + "-opacity").c_str())));
-
-        makeStepper("R",       cy - 40.f, m_rLbl,
+        makeRow("R", m_rLbl,
             menu_selector(LabelSettingPopup::onRMinus),
             menu_selector(LabelSettingPopup::onRPlus),
             fmt::format("{}", S_int((m_key + "-r").c_str())));
-
-        makeStepper("G",       cy - 60.f, m_gLbl,
+        makeRow("G", m_gLbl,
             menu_selector(LabelSettingPopup::onGMinus),
             menu_selector(LabelSettingPopup::onGPlus),
             fmt::format("{}", S_int((m_key + "-g").c_str())));
-
-        makeStepper("B",       cy - 80.f, m_bLbl,
+        makeRow("B", m_bLbl,
             menu_selector(LabelSettingPopup::onBMinus),
             menu_selector(LabelSettingPopup::onBPlus),
             fmt::format("{}", S_int((m_key + "-b").c_str())));
 
+        auto* closeBtn = CCMenuItemSpriteExtra::create(
+            CCSprite::createWithSpriteFrameName("GJ_closeBtn_001.png"),
+            this, menu_selector(LabelSettingPopup::onClose));
+        closeBtn->setPosition({cx - pw / 2.f + 15.f, cy + ph / 2.f - 15.f});
+        m_menu->addChild(closeBtn);
+
+        setTouchEnabled(true);
+        setKeypadEnabled(true);
         return true;
+    }
+
+    void keyBackClicked() override { onClose(nullptr); }
+    void onClose(CCObject*) {
+        removeFromParentAndCleanup(true);
     }
 
     void onToggle(CCObject* sender) {
@@ -463,12 +475,16 @@ public:
         delete r;
         return nullptr;
     }
+
+    void show() {
+        auto* scene = CCDirector::sharedDirector()->getRunningScene();
+        scene->addChild(this, 1000);
+    }
 };
 
-class LabelsPopup : public FLAlertLayer {
+class LabelsPopup : public CCLayerColor {
 protected:
-    CCLayer* m_mainLayer  = nullptr;
-    CCMenu*  m_buttonMenu = nullptr;
+    CCMenu* m_menu = nullptr;
 
     static constexpr float PW = 280.f;
     static constexpr float PH = 260.f;
@@ -476,17 +492,37 @@ protected:
     struct Row { std::string key; std::string name; };
 
     bool init() {
-        if (!FLAlertLayer::init(nullptr, "Labels", "", "Close", nullptr, PW, false, PH, 1.f))
-            return false;
+        auto win = CCDirector::sharedDirector()->getWinSize();
+        if (!CCLayerColor::initWithColor({0, 0, 0, 180})) return false;
 
-        m_mainLayer = static_cast<CCLayer*>(getChildByType<CCLayer>(0));
-        if (!m_mainLayer) return false;
+        auto* panel = CCScale9Sprite::create("GJ_square01.png");
+        panel->setContentSize({PW, PH});
+        panel->setPosition({win.width / 2.f, win.height / 2.f});
+        addChild(panel, 1);
 
-        m_buttonMenu = CCMenu::create();
-        m_buttonMenu->setPosition({0.f, 0.f});
-        m_mainLayer->addChild(m_buttonMenu, 10);
+        auto* bgSpr = createBgSprite(PW, PH);
+        if (bgSpr) {
+            bgSpr->setPosition({win.width / 2.f, win.height / 2.f});
+            addChild(bgSpr, 2);
+        }
 
-        applyPopupBg(m_mainLayer);
+        float cx = win.width / 2.f;
+        float cy = win.height / 2.f;
+
+        auto* titleLbl = CCLabelBMFont::create("Labels", "goldFont.fnt");
+        titleLbl->setScale(0.7f);
+        titleLbl->setPosition({cx, cy + PH / 2.f - 20.f});
+        addChild(titleLbl, 3);
+
+        m_menu = CCMenu::create();
+        m_menu->setPosition({0.f, 0.f});
+        addChild(m_menu, 3);
+
+        auto* closeBtn = CCMenuItemSpriteExtra::create(
+            CCSprite::createWithSpriteFrameName("GJ_closeBtn_001.png"),
+            this, menu_selector(LabelsPopup::onClose));
+        closeBtn->setPosition({cx - PW / 2.f + 15.f, cy + PH / 2.f - 15.f});
+        m_menu->addChild(closeBtn);
 
         std::vector<Row> rows = {
             {"fps",      "FPS"},
@@ -505,11 +541,13 @@ protected:
         float totalH = rowH * (float)rows.size();
         float listW  = PW - 20.f;
         float listH  = PH - 55.f;
+        float listX  = cx - listW / 2.f;
+        float listY  = cy - PH / 2.f + 10.f;
 
         auto* scroll = ScrollLayer::create({listW, listH});
-        scroll->setPosition({10.f, 10.f});
-        scroll->setZOrder(5);
-        m_mainLayer->addChild(scroll);
+        scroll->setPosition({listX, listY});
+        scroll->setZOrder(3);
+        addChild(scroll);
 
         auto* content = CCNode::create();
         content->setContentSize({listW, totalH});
@@ -542,6 +580,8 @@ protected:
         scroll->m_contentLayer->setContentSize({listW, std::max(totalH, listH)});
         scroll->moveToTop();
 
+        setTouchEnabled(true);
+        setKeypadEnabled(true);
         return true;
     }
 
@@ -561,6 +601,9 @@ protected:
         return names;
     }
 
+    void keyBackClicked() override { onClose(nullptr); }
+    void onClose(CCObject*) { removeFromParentAndCleanup(true); }
+
     void onToggle(CCObject* sender) {
         auto* tog = static_cast<CCMenuItemToggler*>(sender);
         int idx = tog->getTag();
@@ -571,7 +614,8 @@ protected:
     void onLabelBtn(CCObject* sender) {
         int idx = static_cast<CCNode*>(sender)->getTag();
         if (idx < 0 || idx >= (int)getKeys().size()) return;
-        LabelSettingPopup::create(getKeys()[idx], getNames()[idx])->show();
+        auto* popup = LabelSettingPopup::create(getKeys()[idx], getNames()[idx]);
+        if (popup) popup->show();
     }
 
 public:
@@ -580,6 +624,11 @@ public:
         if (r && r->init()) { r->autorelease(); return r; }
         delete r;
         return nullptr;
+    }
+
+    void show() {
+        auto* scene = CCDirector::sharedDirector()->getRunningScene();
+        scene->addChild(this, 1000);
     }
 };
 
@@ -616,7 +665,8 @@ class $modify(MyPauseLayer, PauseLayer) {
     }
 
     void onLabels(CCObject*) {
-        LabelsPopup::create()->show();
+        auto* popup = LabelsPopup::create();
+        if (popup) popup->show();
     }
 };
 
