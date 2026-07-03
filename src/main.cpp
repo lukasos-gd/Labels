@@ -409,6 +409,11 @@ private:
         auto* content = CCNode::create();
         content->setContentSize({listW, totalH});
 
+        // Single menu on m_contentLayer directly — CCMenu touch uses raw coords
+        // which match m_contentLayer's coordinate space correctly when scrolled
+        auto* allMenu = CCMenu::create();
+        allMenu->setPosition({0.f, 0.f});
+
         for (int i = 0; i < (int)rowDefs.size(); i++) {
             auto& rd = rowDefs[i];
             float y = totalH - ROW_H * (float)i - ROW_H / 2.f;
@@ -419,25 +424,19 @@ private:
             lbl->setPosition({4.f, y});
             content->addChild(lbl);
 
-            auto* rowMenu = CCMenu::create();
-            rowMenu->setPosition({0.f, 0.f});
-
             if (rd.isBool) {
                 auto* tog = CCMenuItemToggler::createWithStandardSprites(
                     this, menu_selector(LabelSettingPopup::onToggle), 0.55f);
                 tog->toggle(S_bool((m_key + "-show").c_str()));
                 tog->setPosition({listW - 20.f, y});
-                rowMenu->addChild(tog);
+                allMenu->addChild(tog);
             } else {
-                auto capture_rd = rd;
-                auto capture_i  = i;
-
                 auto* minBtn = CCMenuItemSpriteExtra::create(
                     CCLabelBMFont::create("-", "bigFont.fnt"),
                     this, menu_selector(LabelSettingPopup::onMinus));
                 minBtn->setTag(i);
                 minBtn->setPosition({listW - 72.f, y});
-                rowMenu->addChild(minBtn);
+                allMenu->addChild(minBtn);
 
                 auto* input = TextInput::create(52.f, rd.get().c_str(), "bigFont.fnt");
                 input->setScale(0.75f);
@@ -445,8 +444,7 @@ private:
                 input->setFilter("-.0123456789");
                 input->setPosition({listW - 40.f, y});
                 auto captureI = i;
-                auto captureRd = rd;
-                input->setCallback([this, captureI, captureRd](const std::string& s) {
+                input->setCallback([this, captureI](const std::string& s) {
                     if (s.empty()) return;
                     applyTextInput(captureI, s);
                 });
@@ -457,13 +455,12 @@ private:
                     this, menu_selector(LabelSettingPopup::onPlus));
                 plusBtn->setTag(i);
                 plusBtn->setPosition({listW - 8.f, y});
-                rowMenu->addChild(plusBtn);
+                allMenu->addChild(plusBtn);
             }
-
-            content->addChild(rowMenu);
         }
 
         scroll->m_contentLayer->addChild(content);
+        scroll->m_contentLayer->addChild(allMenu);
         scroll->m_contentLayer->setContentSize({listW, std::max(totalH, listH)});
         scroll->moveToTop();
 
@@ -513,6 +510,15 @@ private:
     void onToggle(CCObject* sender) {
         auto* tog = static_cast<CCMenuItemToggler*>(sender);
         (void)Mod::get()->setSettingValue<bool>(m_key + "-show", !tog->isToggled());
+    }
+
+    bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
+        auto loc = touch->getLocation();
+        auto win = CCDirector::sharedDirector()->getWinSize();
+        float cx = win.width / 2.f, cy = win.height / 2.f;
+        CCRect panelRect = CCRect{cx - PW/2.f, cy - PH/2.f, PW, PH};
+        if (!panelRect.containsPoint(loc)) return false;
+        return CCLayerColor::ccTouchBegan(touch, event);
     }
 
     void keyBackClicked() override { onClose(nullptr); }
@@ -591,6 +597,9 @@ class LabelsPopup : public CCLayerColor {
         auto* content = CCNode::create();
         content->setContentSize({listW, totalH});
 
+        auto* allMenu = CCMenu::create();
+        allMenu->setPosition({0.f, 0.f});
+
         for (int i = 0; i < (int)rows.size(); i++) {
             auto& row = rows[i];
             float y = totalH - rowH * (float)i - rowH / 2.f;
@@ -601,32 +610,28 @@ class LabelsPopup : public CCLayerColor {
             nameLbl->setPosition({6.f, y});
             content->addChild(nameLbl);
 
-            auto* rowMenu = CCMenu::create();
-            rowMenu->setPosition({0.f, 0.f});
-
             auto* tog = CCMenuItemToggler::createWithStandardSprites(
                 this, menu_selector(LabelsPopup::onToggle), 0.5f);
             tog->toggle(S_bool((row.key + "-show").c_str()));
             tog->setTag(i);
-            tog->setPosition({listW - 60.f, y});
-            rowMenu->addChild(tog);
+            tog->setPosition({listW - 56.f, y});
+            allMenu->addChild(tog);
 
             auto* editBox = CCScale9Sprite::create("GJ_button_04.png");
-            editBox->setContentSize({42.f, 20.f});
+            editBox->setContentSize({40.f, 20.f});
             auto* editInner = CCLabelBMFont::create("Edit", "bigFont.fnt");
-            editInner->setScale(0.3f);
-            editInner->setPosition({21.f, 10.f});
+            editInner->setScale(0.28f);
+            editInner->setPosition({20.f, 10.f});
             editBox->addChild(editInner);
             auto* editBtn = CCMenuItemSpriteExtra::create(
                 editBox, this, menu_selector(LabelsPopup::onLabelBtn));
             editBtn->setTag(i);
-            editBtn->setPosition({listW - 24.f, y});
-            rowMenu->addChild(editBtn);
-
-            content->addChild(rowMenu);
+            editBtn->setPosition({listW - 26.f, y});
+            allMenu->addChild(editBtn);
         }
 
         scroll->m_contentLayer->addChild(content);
+        scroll->m_contentLayer->addChild(allMenu);
         scroll->m_contentLayer->setContentSize({listW, std::max(totalH, listH)});
         scroll->moveToTop();
 
@@ -646,6 +651,18 @@ class LabelsPopup : public CCLayerColor {
             "FPS","CPS","Attempts","Best %","Run From %","Current %","Session Time","Level ID","Song Name","Objects"
         };
         return names;
+    }
+
+    bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
+        auto loc = touch->getLocation();
+        auto win = CCDirector::sharedDirector()->getWinSize();
+        float cx = win.width / 2.f, cy = win.height / 2.f;
+        CCRect panelRect = CCRect{cx - PW/2.f, cy - PH/2.f, PW, PH};
+        if (!panelRect.containsPoint(loc)) {
+            // touch is outside our panel — let it pass through
+            return false;
+        }
+        return CCLayerColor::ccTouchBegan(touch, event);
     }
 
     void keyBackClicked() override { onClose(nullptr); }
