@@ -235,7 +235,7 @@ public:
         if (h->idLbl)
             h->idLbl->setString(fmt::format("ID: {}", m_level->m_levelID.value()).c_str());
         if (h->songLbl)
-            if (h->songLbl) h->songLbl->setString(fmt::format("Song: {}", m_level->m_songName.size() > 0 ? std::string(m_level->m_songName) : std::to_string(m_level->m_songID)).c_str());
+            h->songLbl->setString(fmt::format("Song ID: {}", m_level->m_songID).c_str());
         if (h->objLbl)
             h->objLbl->setString(fmt::format("Objects: {}", m_level->m_objectCount.value()).c_str());
     }
@@ -275,11 +275,6 @@ public:
 
     void resume() {
         PlayLayer::resume();
-        if (m_fields->hud) { m_fields->hud->setVisible(true); m_fields->hud->resetFPS(); }
-    }
-
-    void resumeGame() {
-        PlayLayer::resumeGame();
         if (m_fields->hud) { m_fields->hud->setVisible(true); m_fields->hud->resetFPS(); }
     }
 };
