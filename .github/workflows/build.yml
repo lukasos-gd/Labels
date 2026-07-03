@@ -10,14 +10,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - Android32
-          - Android64
-          - Win64
-          - macOS
+        include:
+          - target: Android32
+            os: ubuntu-latest
+          - target: Android64
+            os: ubuntu-latest
+          - target: Win64
+            os: windows-latest
+          - target: MacOS
+            os: macos-latest
 
     name: ${{ matrix.target }}
-    runs-on: ${{ matrix.target == 'macOS' && 'macos-latest' || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
