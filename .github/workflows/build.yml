@@ -1,4 +1,4 @@
-name: Build Labels Mod
+name: Compile Labels Mod
 
 on:
   push:
