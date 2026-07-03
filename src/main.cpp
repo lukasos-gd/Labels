@@ -3,7 +3,6 @@
 #include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/PauseLayer.hpp>
 #include <Geode/ui/GeodeUI.hpp>
-#include <Geode/ui/TextInput.hpp>
 #include <chrono>
 
 using namespace geode::prelude;
@@ -307,222 +306,191 @@ static CCSprite* createBgSprite(float w, float h) {
     return bg;
 }
 
-class LabelSettingPopup : public CCLayerColor {
-public:
-    CCLayerColor* m_labelsPopup = nullptr;
+// Base class for both popups — handles background, title, close button,
+// and blocks touches only inside the panel so pause menu stays usable.
+class LabelsBaseLayer : public CCLayerColor {
+protected:
+    float m_pw = 0.f;
+    float m_ph = 0.f;
+    CCMenu* m_menu = nullptr;
 
-private:
-    std::string m_key;
-    CCMenu*     m_menu = nullptr;
-
-    static constexpr float PW = 260.f;
-    static constexpr float PH = 240.f;
-    static constexpr float ROW_H = 32.f;
-
-    struct Row {
-        const char* label;
-        std::string settingKey;
-        SEL_MenuHandler minSel;
-        SEL_MenuHandler plusSel;
-        std::function<std::string()> getValue;
-        std::function<void(const std::string&)> onInput;
-    };
-
-    bool init(const std::string& key, const std::string& labelName) {
+    bool initBase(float pw, float ph, const char* title) {
         auto win = CCDirector::sharedDirector()->getWinSize();
-        if (!CCLayerColor::initWithColor({0, 0, 0, 180}, win.width, win.height)) return false;
-        m_key = key;
+        if (!CCLayerColor::initWithColor({0, 0, 0, 140}, win.width, win.height)) return false;
+        m_pw = pw;
+        m_ph = ph;
 
-        auto* bgSpr = createBgSprite(PW, PH);
-        if (bgSpr) {
-            bgSpr->setPosition({win.width / 2.f, win.height / 2.f});
-            addChild(bgSpr, 1);
+        auto* bg = createBgSprite(pw, ph);
+        if (bg) {
+            bg->setPosition({win.width / 2.f, win.height / 2.f});
+            addChild(bg, 1);
         }
 
         float cx = win.width / 2.f;
         float cy = win.height / 2.f;
 
-        auto* titleLbl = CCLabelBMFont::create(labelName.c_str(), "goldFont.fnt");
-        titleLbl->setScale(0.6f);
-        titleLbl->setPosition({cx, cy + PH / 2.f - 16.f});
+        auto* titleLbl = CCLabelBMFont::create(title, "goldFont.fnt");
+        titleLbl->setScale(0.65f);
+        titleLbl->setPosition({cx, cy + ph / 2.f - 18.f});
         addChild(titleLbl, 2);
 
         m_menu = CCMenu::create();
         m_menu->setPosition({0.f, 0.f});
-        addChild(m_menu, 2);
+        m_menu->setTouchPriority(-500);
+        addChild(m_menu, 3);
 
         auto* closeBtn = CCMenuItemSpriteExtra::create(
             CCSprite::createWithSpriteFrameName("GJ_closeBtn_001.png"),
-            this, menu_selector(LabelSettingPopup::onClose));
+            this, menu_selector(LabelsBaseLayer::onClose));
         closeBtn->setScale(0.8f);
-        closeBtn->setPosition({cx - PW / 2.f + 14.f, cy + PH / 2.f - 14.f});
+        closeBtn->setPosition({cx - pw / 2.f + 14.f, cy + ph / 2.f - 14.f});
         m_menu->addChild(closeBtn);
 
-        float listW = PW - 16.f;
-        float listH = PH - 36.f;
-        float listX = cx - listW / 2.f;
-        float listY = cy - PH / 2.f + 4.f;
+        setTouchEnabled(true);
+        setKeypadEnabled(true);
+        // High touch priority so we're checked before pause layer menus
+        setTouchPriority(-499);
+        return true;
+    }
 
-        auto* scroll = ScrollLayer::create({listW, listH});
-        scroll->setPosition({listX, listY});
-        scroll->setZOrder(2);
-        addChild(scroll);
+    bool ccTouchBegan(CCTouch* touch, CCEvent*) override {
+        auto loc  = touch->getLocation();
+        auto win  = CCDirector::sharedDirector()->getWinSize();
+        float cx  = win.width / 2.f;
+        float cy  = win.height / 2.f;
+        // Only consume the touch if it's inside our panel
+        return CCRect{cx - m_pw/2.f, cy - m_ph/2.f, m_pw, m_ph}.containsPoint(loc);
+    }
 
-        std::string k = m_key;
+    void keyBackClicked() override { onClose(nullptr); }
+    virtual void onClose(CCObject*) { removeFromParentAndCleanup(true); }
+};
 
-        struct RowDef {
-            const char* label;
-            std::function<std::string()> get;
-            std::function<void(float)> adj;
-            float step;
-            bool isInt;
-            bool isBool;
+class LabelSettingPopup : public LabelsBaseLayer {
+public:
+    LabelsBaseLayer* m_labelsPopup = nullptr;
+
+private:
+    std::string m_key;
+
+    static constexpr float PW = 280.f;
+    static constexpr float PH = 310.f;
+    static constexpr float ROW_H = 34.f;
+
+    // Value label nodes stored for updating after button presses
+    CCLabelBMFont* m_valLabels[8] = {};
+
+    bool init(const std::string& key, const std::string& labelName) {
+        if (!initBase(PW, PH, labelName.c_str())) return false;
+        m_key = key;
+
+        auto win = CCDirector::sharedDirector()->getWinSize();
+        float cx = win.width / 2.f;
+        float cy = win.height / 2.f;
+
+        // Layout all rows statically — no ScrollLayer so CCMenu coords are unambiguous
+        float startY = cy + PH / 2.f - 46.f;
+
+        struct RowDef { const char* name; bool isBool; };
+        RowDef defs[] = {
+            {"Show",    true},
+            {"Scale",   false},
+            {"Opacity", false},
+            {"Pos X",   false},
+            {"Pos Y",   false},
+            {"Red",     false},
+            {"Green",   false},
+            {"Blue",    false},
         };
 
-        std::vector<RowDef> rowDefs = {
-            {"Show",    [k]{ return S_bool((k+"-show").c_str()) ? "On" : "Off"; },
-             nullptr, 0, false, true},
-            {"Scale",   [k]{ return fmt::format("{:.2f}", S_float((k+"-scale").c_str())); },
-             [k](float d){ float v = std::clamp(S_float((k+"-scale").c_str())+d,0.1f,2.f);
-                (void)Mod::get()->setSettingValue<double>(k+"-scale",(double)v); }, 0.05f, false, false},
-            {"Opacity", [k]{ return fmt::format("{:.2f}", S_float((k+"-opacity").c_str())); },
-             [k](float d){ float v = std::clamp(S_float((k+"-opacity").c_str())+d,0.f,1.f);
-                (void)Mod::get()->setSettingValue<double>(k+"-opacity",(double)v); }, 0.05f, false, false},
-            {"Pos X",   [k]{ return fmt::format("{:.0f}", S_float((k+"-x").c_str())); },
-             [k](float d){ float v = S_float((k+"-x").c_str())+d;
-                (void)Mod::get()->setSettingValue<double>(k+"-x",(double)v); }, 5.f, false, false},
-            {"Pos Y",   [k]{ return fmt::format("{:.0f}", S_float((k+"-y").c_str())); },
-             [k](float d){ float v = S_float((k+"-y").c_str())+d;
-                (void)Mod::get()->setSettingValue<double>(k+"-y",(double)v); }, 5.f, false, false},
-            {"Red",     [k]{ return fmt::format("{}", S_int((k+"-r").c_str())); },
-             [k](float d){ int v = std::clamp(S_int((k+"-r").c_str())+(int)d,0,255);
-                (void)Mod::get()->setSettingValue<int64_t>(k+"-r",(int64_t)v); }, 5.f, true, false},
-            {"Green",   [k]{ return fmt::format("{}", S_int((k+"-g").c_str())); },
-             [k](float d){ int v = std::clamp(S_int((k+"-g").c_str())+(int)d,0,255);
-                (void)Mod::get()->setSettingValue<int64_t>(k+"-g",(int64_t)v); }, 5.f, true, false},
-            {"Blue",    [k]{ return fmt::format("{}", S_int((k+"-b").c_str())); },
-             [k](float d){ int v = std::clamp(S_int((k+"-b").c_str())+(int)d,0,255);
-                (void)Mod::get()->setSettingValue<int64_t>(k+"-b",(int64_t)v); }, 5.f, true, false},
-        };
+        for (int i = 0; i < 8; i++) {
+            float y = startY - ROW_H * (float)i;
 
-        float totalH = ROW_H * (float)rowDefs.size();
-        auto* content = CCNode::create();
-        content->setContentSize({listW, totalH});
+            if (i > 0) {
+                auto* div = CCLayerColor::create({255,255,255,18}, PW - 20.f, 1.f);
+                div->setPosition({cx - (PW-20.f)/2.f, y + ROW_H/2.f});
+                addChild(div, 2);
+            }
 
-        // Single menu on m_contentLayer directly — CCMenu touch uses raw coords
-        // which match m_contentLayer's coordinate space correctly when scrolled
-        auto* allMenu = CCMenu::create();
-        allMenu->setPosition({0.f, 0.f});
-
-        for (int i = 0; i < (int)rowDefs.size(); i++) {
-            auto& rd = rowDefs[i];
-            float y = totalH - ROW_H * (float)i - ROW_H / 2.f;
-
-            auto* lbl = CCLabelBMFont::create(rd.label, "bigFont.fnt");
+            auto* lbl = CCLabelBMFont::create(defs[i].name, "bigFont.fnt");
             lbl->setScale(0.38f);
             lbl->setAnchorPoint({0.f, 0.5f});
-            lbl->setPosition({4.f, y});
-            content->addChild(lbl);
+            lbl->setPosition({cx - PW/2.f + 12.f, y});
+            addChild(lbl, 2);
 
-            if (rd.isBool) {
+            if (defs[i].isBool) {
                 auto* tog = CCMenuItemToggler::createWithStandardSprites(
-                    this, menu_selector(LabelSettingPopup::onToggle), 0.55f);
+                    this, menu_selector(LabelSettingPopup::onToggle), 0.6f);
                 tog->toggle(S_bool((m_key + "-show").c_str()));
-                tog->setPosition({listW - 20.f, y});
-                allMenu->addChild(tog);
+                tog->setPosition({cx + PW/2.f - 22.f, y});
+                m_menu->addChild(tog);
             } else {
                 auto* minBtn = CCMenuItemSpriteExtra::create(
                     CCLabelBMFont::create("-", "bigFont.fnt"),
                     this, menu_selector(LabelSettingPopup::onMinus));
                 minBtn->setTag(i);
-                minBtn->setPosition({listW - 72.f, y});
-                allMenu->addChild(minBtn);
+                minBtn->setPosition({cx + PW/2.f - 80.f, y});
+                m_menu->addChild(minBtn);
 
-                auto* input = TextInput::create(52.f, rd.get().c_str(), "bigFont.fnt");
-                input->setScale(0.75f);
-                input->setString(rd.get());
-                input->setFilter("-.0123456789");
-                input->setPosition({listW - 40.f, y});
-                auto captureI = i;
-                input->setCallback([this, captureI](const std::string& s) {
-                    if (s.empty()) return;
-                    applyTextInput(captureI, s);
-                });
-                content->addChild(input);
+                m_valLabels[i] = CCLabelBMFont::create(getVal(i).c_str(), "bigFont.fnt");
+                m_valLabels[i]->setScale(0.38f);
+                m_valLabels[i]->setPosition({cx + PW/2.f - 48.f, y});
+                addChild(m_valLabels[i], 2);
 
                 auto* plusBtn = CCMenuItemSpriteExtra::create(
                     CCLabelBMFont::create("+", "bigFont.fnt"),
                     this, menu_selector(LabelSettingPopup::onPlus));
                 plusBtn->setTag(i);
-                plusBtn->setPosition({listW - 8.f, y});
-                allMenu->addChild(plusBtn);
+                plusBtn->setPosition({cx + PW/2.f - 18.f, y});
+                m_menu->addChild(plusBtn);
             }
         }
 
-        scroll->m_contentLayer->addChild(content);
-        scroll->m_contentLayer->addChild(allMenu);
-        scroll->m_contentLayer->setContentSize({listW, std::max(totalH, listH)});
-        scroll->moveToTop();
-
-        setTouchEnabled(true);
-        setKeypadEnabled(true);
         return true;
     }
 
-    void applyTextInput(int idx, const std::string& s) {
-        std::string k = m_key;
-        switch (idx) {
-            case 1: { float v = std::clamp(strtof(s.c_str(),nullptr),0.1f,2.f);
-                      (void)Mod::get()->setSettingValue<double>(k+"-scale",(double)v); break; }
-            case 2: { float v = std::clamp(strtof(s.c_str(),nullptr),0.f,1.f);
-                      (void)Mod::get()->setSettingValue<double>(k+"-opacity",(double)v); break; }
-            case 3: { (void)Mod::get()->setSettingValue<double>(k+"-x",(double)strtof(s.c_str(),nullptr)); break; }
-            case 4: { (void)Mod::get()->setSettingValue<double>(k+"-y",(double)strtof(s.c_str(),nullptr)); break; }
-            case 5: { int v=std::clamp(atoi(s.c_str()),0,255); (void)Mod::get()->setSettingValue<int64_t>(k+"-r",(int64_t)v); break; }
-            case 6: { int v=std::clamp(atoi(s.c_str()),0,255); (void)Mod::get()->setSettingValue<int64_t>(k+"-g",(int64_t)v); break; }
-            case 7: { int v=std::clamp(atoi(s.c_str()),0,255); (void)Mod::get()->setSettingValue<int64_t>(k+"-b",(int64_t)v); break; }
+    std::string getVal(int i) {
+        switch (i) {
+            case 1: return fmt::format("{:.2f}", S_float((m_key+"-scale").c_str()));
+            case 2: return fmt::format("{:.2f}", S_float((m_key+"-opacity").c_str()));
+            case 3: return fmt::format("{:.0f}", S_float((m_key+"-x").c_str()));
+            case 4: return fmt::format("{:.0f}", S_float((m_key+"-y").c_str()));
+            case 5: return fmt::format("{}",     S_int  ((m_key+"-r").c_str()));
+            case 6: return fmt::format("{}",     S_int  ((m_key+"-g").c_str()));
+            case 7: return fmt::format("{}",     S_int  ((m_key+"-b").c_str()));
+            default: return "";
         }
     }
 
-    void onMinus(CCObject* sender) { stepRow(static_cast<CCNode*>(sender)->getTag(), -1.f); }
-    void onPlus (CCObject* sender) { stepRow(static_cast<CCNode*>(sender)->getTag(),  1.f); }
-
-    void stepRow(int idx, float dir) {
-        std::string k = m_key;
-        switch (idx) {
-            case 1: { float v=std::clamp(S_float((k+"-scale").c_str())+dir*0.05f,0.1f,2.f);
-                      (void)Mod::get()->setSettingValue<double>(k+"-scale",(double)v); break; }
-            case 2: { float v=std::clamp(S_float((k+"-opacity").c_str())+dir*0.05f,0.f,1.f);
-                      (void)Mod::get()->setSettingValue<double>(k+"-opacity",(double)v); break; }
-            case 3: { float v=S_float((k+"-x").c_str())+dir*5.f;
-                      (void)Mod::get()->setSettingValue<double>(k+"-x",(double)v); break; }
-            case 4: { float v=S_float((k+"-y").c_str())+dir*5.f;
-                      (void)Mod::get()->setSettingValue<double>(k+"-y",(double)v); break; }
-            case 5: { int v=std::clamp(S_int((k+"-r").c_str())+(int)(dir*5),0,255);
-                      (void)Mod::get()->setSettingValue<int64_t>(k+"-r",(int64_t)v); break; }
-            case 6: { int v=std::clamp(S_int((k+"-g").c_str())+(int)(dir*5),0,255);
-                      (void)Mod::get()->setSettingValue<int64_t>(k+"-g",(int64_t)v); break; }
-            case 7: { int v=std::clamp(S_int((k+"-b").c_str())+(int)(dir*5),0,255);
-                      (void)Mod::get()->setSettingValue<int64_t>(k+"-b",(int64_t)v); break; }
+    void step(int i, float dir) {
+        switch (i) {
+            case 1:{float v=std::clamp(S_float((m_key+"-scale").c_str())+dir*0.05f,0.1f,2.f);
+                    (void)Mod::get()->setSettingValue<double>(m_key+"-scale",(double)v);break;}
+            case 2:{float v=std::clamp(S_float((m_key+"-opacity").c_str())+dir*0.05f,0.f,1.f);
+                    (void)Mod::get()->setSettingValue<double>(m_key+"-opacity",(double)v);break;}
+            case 3:{float v=S_float((m_key+"-x").c_str())+dir*5.f;
+                    (void)Mod::get()->setSettingValue<double>(m_key+"-x",(double)v);break;}
+            case 4:{float v=S_float((m_key+"-y").c_str())+dir*5.f;
+                    (void)Mod::get()->setSettingValue<double>(m_key+"-y",(double)v);break;}
+            case 5:{int v=std::clamp(S_int((m_key+"-r").c_str())+(int)(dir*5),0,255);
+                    (void)Mod::get()->setSettingValue<int64_t>(m_key+"-r",(int64_t)v);break;}
+            case 6:{int v=std::clamp(S_int((m_key+"-g").c_str())+(int)(dir*5),0,255);
+                    (void)Mod::get()->setSettingValue<int64_t>(m_key+"-g",(int64_t)v);break;}
+            case 7:{int v=std::clamp(S_int((m_key+"-b").c_str())+(int)(dir*5),0,255);
+                    (void)Mod::get()->setSettingValue<int64_t>(m_key+"-b",(int64_t)v);break;}
         }
+        if (m_valLabels[i]) m_valLabels[i]->setString(getVal(i).c_str());
     }
+
+    void onMinus(CCObject* s) { step(static_cast<CCNode*>(s)->getTag(), -1.f); }
+    void onPlus (CCObject* s) { step(static_cast<CCNode*>(s)->getTag(),  1.f); }
 
     void onToggle(CCObject* sender) {
         auto* tog = static_cast<CCMenuItemToggler*>(sender);
         (void)Mod::get()->setSettingValue<bool>(m_key + "-show", !tog->isToggled());
     }
 
-    bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
-        auto loc = touch->getLocation();
-        auto win = CCDirector::sharedDirector()->getWinSize();
-        float cx = win.width / 2.f, cy = win.height / 2.f;
-        CCRect panelRect = CCRect{cx - PW/2.f, cy - PH/2.f, PW, PH};
-        if (!panelRect.containsPoint(loc)) return false;
-        return CCLayerColor::ccTouchBegan(touch, event);
-    }
-
-    void keyBackClicked() override { onClose(nullptr); }
-    void onClose(CCObject*) {
+    void onClose(CCObject*) override {
         if (m_labelsPopup) m_labelsPopup->setVisible(true);
         removeFromParentAndCleanup(true);
     }
@@ -534,46 +502,21 @@ public:
         delete r;
         return nullptr;
     }
-
     void show(CCNode* parent) { parent->addChild(this, 10000); }
 };
 
-class LabelsPopup : public CCLayerColor {
-    CCMenu* m_menu = nullptr;
-
+class LabelsPopup : public LabelsBaseLayer {
     static constexpr float PW = 320.f;
     static constexpr float PH = 280.f;
 
     struct Row { std::string key; std::string name; };
 
-    bool init() override {
+    bool init() {
+        if (!initBase(PW, PH, "Labels")) return false;
+
         auto win = CCDirector::sharedDirector()->getWinSize();
-        if (!CCLayerColor::initWithColor({0, 0, 0, 180}, win.width, win.height)) return false;
-
-        auto* bgSpr = createBgSprite(PW, PH);
-        if (bgSpr) {
-            bgSpr->setPosition({win.width / 2.f, win.height / 2.f});
-            addChild(bgSpr, 1);
-        }
-
         float cx = win.width / 2.f;
         float cy = win.height / 2.f;
-
-        auto* titleLbl = CCLabelBMFont::create("Labels", "goldFont.fnt");
-        titleLbl->setScale(0.7f);
-        titleLbl->setPosition({cx, cy + PH / 2.f - 18.f});
-        addChild(titleLbl, 2);
-
-        m_menu = CCMenu::create();
-        m_menu->setPosition({0.f, 0.f});
-        addChild(m_menu, 2);
-
-        auto* closeBtn = CCMenuItemSpriteExtra::create(
-            CCSprite::createWithSpriteFrameName("GJ_closeBtn_001.png"),
-            this, menu_selector(LabelsPopup::onClose));
-        closeBtn->setScale(0.8f);
-        closeBtn->setPosition({cx - PW / 2.f + 14.f, cy + PH / 2.f - 14.f});
-        m_menu->addChild(closeBtn);
 
         std::vector<Row> rows = {
             {"fps","FPS"},{"cps","CPS"},{"attempts","Attempts"},
@@ -582,10 +525,10 @@ class LabelsPopup : public CCLayerColor {
             {"song","Song Name"},{"objects","Objects"},
         };
 
-        float rowH   = 27.f;
+        float rowH   = 24.f;
         float totalH = rowH * (float)rows.size();
         float listW  = PW - 16.f;
-        float listH  = PH - 46.f;
+        float listH  = PH - 44.f;
         float listX  = cx - listW / 2.f;
         float listY  = cy - PH / 2.f + 4.f;
 
@@ -594,49 +537,55 @@ class LabelsPopup : public CCLayerColor {
         scroll->setZOrder(2);
         addChild(scroll);
 
+        // All interactive items go directly on m_contentLayer
+        auto* itemsMenu = CCMenu::create();
+        itemsMenu->setPosition({0.f, 0.f});
+        itemsMenu->setTouchPriority(-501);
+
         auto* content = CCNode::create();
         content->setContentSize({listW, totalH});
-
-        auto* allMenu = CCMenu::create();
-        allMenu->setPosition({0.f, 0.f});
 
         for (int i = 0; i < (int)rows.size(); i++) {
             auto& row = rows[i];
             float y = totalH - rowH * (float)i - rowH / 2.f;
 
+            if (i > 0) {
+                auto* div = CCLayerColor::create({255,255,255,18}, listW, 1.f);
+                div->setPosition({0.f, y + rowH / 2.f});
+                content->addChild(div);
+            }
+
             auto* nameLbl = CCLabelBMFont::create(row.name.c_str(), "bigFont.fnt");
             nameLbl->setAnchorPoint({0.f, 0.5f});
-            nameLbl->setScale(0.38f);
+            nameLbl->setScale(0.37f);
             nameLbl->setPosition({6.f, y});
             content->addChild(nameLbl);
 
             auto* tog = CCMenuItemToggler::createWithStandardSprites(
-                this, menu_selector(LabelsPopup::onToggle), 0.5f);
+                this, menu_selector(LabelsPopup::onToggle), 0.48f);
             tog->toggle(S_bool((row.key + "-show").c_str()));
             tog->setTag(i);
-            tog->setPosition({listW - 56.f, y});
-            allMenu->addChild(tog);
+            tog->setPosition({listW - 54.f, y});
+            itemsMenu->addChild(tog);
 
             auto* editBox = CCScale9Sprite::create("GJ_button_04.png");
-            editBox->setContentSize({40.f, 20.f});
-            auto* editInner = CCLabelBMFont::create("Edit", "bigFont.fnt");
-            editInner->setScale(0.28f);
-            editInner->setPosition({20.f, 10.f});
-            editBox->addChild(editInner);
+            editBox->setContentSize({38.f, 18.f});
+            auto* editLbl = CCLabelBMFont::create("Edit", "bigFont.fnt");
+            editLbl->setScale(0.26f);
+            editLbl->setPosition({19.f, 9.f});
+            editBox->addChild(editLbl);
             auto* editBtn = CCMenuItemSpriteExtra::create(
                 editBox, this, menu_selector(LabelsPopup::onLabelBtn));
             editBtn->setTag(i);
-            editBtn->setPosition({listW - 26.f, y});
-            allMenu->addChild(editBtn);
+            editBtn->setPosition({listW - 24.f, y});
+            itemsMenu->addChild(editBtn);
         }
 
         scroll->m_contentLayer->addChild(content);
-        scroll->m_contentLayer->addChild(allMenu);
+        scroll->m_contentLayer->addChild(itemsMenu);
         scroll->m_contentLayer->setContentSize({listW, std::max(totalH, listH)});
         scroll->moveToTop();
 
-        setTouchEnabled(true);
-        setKeypadEnabled(true);
         return true;
     }
 
@@ -652,21 +601,6 @@ class LabelsPopup : public CCLayerColor {
         };
         return names;
     }
-
-    bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
-        auto loc = touch->getLocation();
-        auto win = CCDirector::sharedDirector()->getWinSize();
-        float cx = win.width / 2.f, cy = win.height / 2.f;
-        CCRect panelRect = CCRect{cx - PW/2.f, cy - PH/2.f, PW, PH};
-        if (!panelRect.containsPoint(loc)) {
-            // touch is outside our panel — let it pass through
-            return false;
-        }
-        return CCLayerColor::ccTouchBegan(touch, event);
-    }
-
-    void keyBackClicked() override { onClose(nullptr); }
-    void onClose(CCObject*) { removeFromParentAndCleanup(true); }
 
     void onToggle(CCObject* sender) {
         auto* tog = static_cast<CCMenuItemToggler*>(sender);
@@ -733,5 +667,5 @@ class $modify(MyPauseLayer, PauseLayer) {
 };
 
 $on_mod(Loaded) {
-    log::info("Labels v1.0.1 loaded");
+    log::info("Labels v1.0.0 loaded");
 }
