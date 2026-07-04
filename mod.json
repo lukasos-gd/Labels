@@ -21,11 +21,6 @@
       "importance": "required"
     }
   },
-  "resources": {
-    "sprites": [
-      "resources/labels_bg.png"
-    ]
-  },
   "links": {
     "source": "https://github.com/lukasos-gd/Labels",
     "community": "https://discord.gg/cqZJNdKJDC"
