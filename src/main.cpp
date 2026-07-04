@@ -103,6 +103,7 @@ public:
 
         applyAllSettings();
     }
+
     void applyAllSettings() {
         auto windowSize   = CCDirector::sharedDirector()->getWinSize();
         auto* playLayer   = PlayLayer::get();
@@ -203,7 +204,8 @@ public:
                 int averageFPS = (int)(fpsSampleFill / totalDuration + 0.5f);
                 fpsLabel->setString(fmt::format("FPS: {}", averageFPS).c_str());
             }
-}
+        }
+
         if (cpsLabel && cpsLabel->isVisible()) {
             cpsFlashTimer = std::max(0.f, cpsFlashTimer - deltaTime);
 
@@ -289,7 +291,8 @@ class $modify(LabelsPlayLayer, PlayLayer) {
 
         if (hud->runFromLabel)
             hud->runFromLabel->setString(fmt::format("From: {}%", m_fields->runFromPercent).c_str());
-}
+    }
+
     void destroyPlayer(PlayerObject* player, GameObject* object) {
         PlayLayer::destroyPlayer(player, object);
         updateStaticLabels();
@@ -423,7 +426,8 @@ class LabelSettingsPopup : public geode::Popup<std::string, std::string> {
         }
 
         return true;
-}
+    }
+
     std::string getCurrentValueString(int valueIndex) {
         switch (valueIndex) {
             case 0: return fmt::format("{:.2f}", getSettingFloat((m_labelKey + "-scale").c_str()));
@@ -543,7 +547,8 @@ class LabelsMenuPopup : public geode::Popup<> {
         scrollLayer->moveToTop();
 
         return true;
-}
+    }
+
     static const char* rowKey(int i) {
         static const char* keys[] = {
             "fps","cps","attempts","best","runfrom","curpct",
