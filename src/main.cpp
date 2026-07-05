@@ -2,7 +2,6 @@
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/PauseLayer.hpp>
-#include <Geode/ui/Popup.hpp>
 #include <chrono>
 
 using namespace geode::prelude;
@@ -354,14 +353,19 @@ struct LabelsPlayerObject : geode::Modify<LabelsPlayerObject, PlayerObject> {
     }
 };
 
-class LabelSettingsPopup : public geode::Popup<std::string, std::string> {
+class LabelSettingsPopup : public FLAlertLayer {
     std::string m_labelKey;
 
     CCLabelBMFont* m_valueLabels[7] = {};
 
-    bool setup(std::string labelKey, std::string labelName) override {
+    bool init(std::string labelKey, std::string labelName) {
+        if (!FLAlertLayer::init(nullptr, labelName.c_str(), "", "Close", nullptr, 250.f, false, 310.f, 1.f)) return false;
         m_labelKey = labelKey;
-        setTitle(labelName.c_str());
+
+        auto* buttonMenu = CCMenu::create();
+        buttonMenu->setPosition({0.f, 0.f});
+        m_mainLayer->addChild(buttonMenu, 10);
+        m_buttonMenu = buttonMenu;
 
         float contentWidth  = m_mainLayer->getContentWidth();
         float contentHeight = m_mainLayer->getContentHeight();
@@ -486,7 +490,7 @@ class LabelSettingsPopup : public geode::Popup<std::string, std::string> {
 public:
     static LabelSettingsPopup* create(const std::string& key, const std::string& name) {
         auto* popup = new LabelSettingsPopup();
-        if (popup && popup->initAnchored(250.f, 310.f, key, name)) {
+        if (popup && popup->init(key, name)) {
             popup->autorelease();
             return popup;
         }
@@ -495,12 +499,17 @@ public:
     }
 };
 
-class LabelsMenuPopup : public geode::Popup<> {
+class LabelsMenuPopup : public FLAlertLayer {
     static constexpr float POPUP_WIDTH  = 280.f;
     static constexpr float POPUP_HEIGHT = 260.f;
 
-    bool setup() override {
-        setTitle("Labels");
+    bool init() {
+        if (!FLAlertLayer::init(nullptr, "Labels", "", "Close", nullptr, POPUP_WIDTH, false, POPUP_HEIGHT, 1.f)) return false;
+
+        auto* buttonMenu = CCMenu::create();
+        buttonMenu->setPosition({0.f, 0.f});
+        m_mainLayer->addChild(buttonMenu, 10);
+        m_buttonMenu = buttonMenu;
 
         float rowHeight   = 26.f;
         float totalHeight = rowHeight * 10;
@@ -513,6 +522,9 @@ class LabelsMenuPopup : public geode::Popup<> {
 
         auto* contentNode = CCNode::create();
         contentNode->setContentSize({listWidth, totalHeight});
+
+        auto* itemsMenu = CCMenu::create();
+        itemsMenu->setPosition({0.f, 0.f});
 
         for (int rowIndex = 0; rowIndex < 10; rowIndex++) {
             float rowCenterY = totalHeight - rowHeight * rowIndex - rowHeight / 2.f;
@@ -528,21 +540,18 @@ class LabelsMenuPopup : public geode::Popup<> {
             toggleItem->toggle(getSettingBool((std::string(rowKey(rowIndex)) + "-show").c_str()));
             toggleItem->setTag(rowIndex);
             toggleItem->setPosition({listWidth - 52.f, rowCenterY});
+            itemsMenu->addChild(toggleItem);
 
             auto* editButton = CCMenuItemSpriteExtra::create(
                 ButtonSprite::create("Edit", "bigFont.fnt", "GJ_button_04.png", 0.5f),
                 this, menu_selector(LabelsMenuPopup::onEditLabel));
             editButton->setTag(rowIndex);
             editButton->setPosition({listWidth - 20.f, rowCenterY});
-
-            auto* rowMenu = CCMenu::create();
-            rowMenu->setPosition({0.f, 0.f});
-            rowMenu->addChild(toggleItem);
-            rowMenu->addChild(editButton);
-            contentNode->addChild(rowMenu);
+            itemsMenu->addChild(editButton);
         }
 
         scrollLayer->m_contentLayer->addChild(contentNode);
+        scrollLayer->m_contentLayer->addChild(itemsMenu);
         scrollLayer->m_contentLayer->setContentSize({listWidth, std::max(totalHeight, listHeight)});
         scrollLayer->moveToTop();
 
@@ -580,7 +589,7 @@ class LabelsMenuPopup : public geode::Popup<> {
 public:
     static LabelsMenuPopup* create() {
         auto* popup = new LabelsMenuPopup();
-        if (popup && popup->initAnchored(POPUP_WIDTH, POPUP_HEIGHT)) {
+        if (popup && popup->init()) {
             popup->autorelease();
             return popup;
         }
@@ -627,5 +636,5 @@ class $modify(LabelsPauseLayer, PauseLayer) {
 };
 
 $on_mod(Loaded) {
-    log::info("Labels v1.0.0 loaded");
+    log::info("Labels v1.0.1 loaded");
 }
