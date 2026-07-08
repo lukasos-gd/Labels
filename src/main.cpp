@@ -573,20 +573,21 @@ class LabelsMenuPopup : public CCLayer {
                 this, menu_selector(LabelsMenuPopup::onToggleLabel), 0.5f);
             tog->toggle(getSettingBool((std::string(rowKey(i)) + "-show").c_str()));
             tog->setTag(i);
-            tog->setPosition({listWidth - 52.f, rowY});
+            tog->setPosition({listWidth - 42.f, rowY});
             itemsMenu->addChild(tog);
 
             auto* editBtn = CCMenuItemSpriteExtra::create(
-                ButtonSprite::create("Edit", "bigFont.fnt", "GJ_button_04.png", 0.5f),
+                ButtonSprite::create("Edit", "bigFont.fnt", "GJ_button_04.png", 0.4f),
                 this, menu_selector(LabelsMenuPopup::onEditLabel));
             editBtn->setTag(i);
-            editBtn->setPosition({listWidth - 20.f, rowY});
+            editBtn->setPosition({listWidth - 16.f, rowY});
             itemsMenu->addChild(editBtn);
         }
 
         scrollLayer->m_contentLayer->addChild(contentNode);
         scrollLayer->m_contentLayer->addChild(itemsMenu);
-        scrollLayer->m_contentLayer->setContentSize({listWidth, std::max(totalHeight, listHeight)});
+        scrollLayer->m_contentLayer->setContentSize({listWidth, totalHeight});
+        scrollLayer->m_contentLayer->setPositionY(listHeight - totalHeight);
         scrollLayer->moveToTop();
 
         setTouchEnabled(true);
